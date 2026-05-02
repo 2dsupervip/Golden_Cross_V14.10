@@ -24,8 +24,8 @@ if 'authenticated' not in st.session_state:
 
 if not st.session_state.authenticated:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align: center; color: #00E5FF; letter-spacing: 2px;'>🤖 THE GOLDEN CROSS (FINAL V14.10)</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #A0AEC0;'>ULTIMATE MASTERPIECE EDITION</p>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #00E5FF; letter-spacing: 2px;'>🤖 THE GOLDEN CROSS (V14.11)</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #A0AEC0;'>BUG-FREE MASTERPIECE EDITION</p>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -106,6 +106,18 @@ def get_mode2_raw_ranks(history):
         for k, v in Counter(flat).items(): scores[int(k)] += v * weight
     return [str(x[0]) for x in sorted(scores.items(), key=lambda x: x[1], reverse=True)]
 
+def get_best_partners(target, hist_tuples):
+    target_int = int(target)
+    partners = []
+    for draw in hist_tuples:
+        if draw[0] == target_int: partners.append(draw[1])
+        if draw[1] == target_int: partners.append(draw[0])
+    c = Counter(partners)
+    sorted_p = [str(k) for k, v in c.most_common()]
+    for i in range(10):
+        if str(i) not in sorted_p: sorted_p.append(str(i))
+    return sorted_p[:4]
+
 # --- 📊 Full Backtest & ML Engine ---
 @st.cache_data(show_spinner=False)
 def run_backend_engine(timeline, test_size):
@@ -123,7 +135,7 @@ def run_backend_engine(timeline, test_size):
     def evaluate_mode(raw_hist, actuals):
         rank_hits_1_5 = {1:0, 2:0, 3:0, 4:0, 5:0}
         rank_hits_6_10 = {6:0, 7:0, 8:0, 9:0, 10:0}
-        mains_hist, secs_hist, cm_hist, cs_hist = [], [], []
+        mains_hist, secs_hist, cm_hist, cs_hist = [], [], [], []
         hot_logs, cold_logs = [], []
         
         for i, draw in enumerate(actuals):
@@ -418,6 +430,8 @@ if 'history' not in st.session_state:
     st.session_state.history = []
 if 'last_uploaded' not in st.session_state:
     st.session_state.last_uploaded = None
+
+# V14.11 Bug Fix: Properly initialize keys for state widgets
 if 'tg_token' not in st.session_state: 
     st.session_state.tg_token = ""
 if 'tg_chat_id' not in st.session_state: 
@@ -447,7 +461,7 @@ if uploaded_file is not None:
         except Exception as e: st.sidebar.error(f"❌ Error: {e}")
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 📝 Live Data Entry (V14.10)")
+st.sidebar.markdown("### 📝 Live Data Entry (V14.11)")
 
 if st.session_state.history:
     last_entry = st.session_state.history[-1]
@@ -485,16 +499,16 @@ if st.sidebar.button("↩️ Undo (ပြန်ဖျက်မည်)"):
         if hasattr(st, "rerun"): st.rerun()
         else: st.experimental_rerun()
 
-# --- 📲 Phase 5: Telegram Config UI ---
+# --- 📲 Phase 5: Telegram Config UI (V14.11 BUG FIX) ---
 with st.sidebar.expander("⚙️ Telegram Bot Settings"):
-    st.session_state.tg_token = st.text_input("Bot Token", value=st.session_state.tg_token, type="password")
-    st.session_state.tg_chat_id = st.text_input("Chat ID / Group ID", value=st.session_state.tg_chat_id)
+    st.text_input("Bot Token", key="tg_token", type="password")
+    st.text_input("Chat ID / Group ID", key="tg_chat_id")
     if st.button("💾 သိမ်းမည်"):
         st.success("✅ Telegram Settings သိမ်းဆည်းပြီးပါပြီ။")
 
-# --- 📱 Main App UI (V14.10 Final) ---
+# --- 📱 Main App UI (V14.11 Final) ---
 st.markdown("<h1 class='neon-text'>THE GOLDEN CROSS</h1>", unsafe_allow_html=True)
-st.markdown("<p class='sub-text'>V14.10 - ULTIMATE MASTERPIECE</p>", unsafe_allow_html=True)
+st.markdown("<p class='sub-text'>V14.11 - BUG-FREE MASTERPIECE</p>", unsafe_allow_html=True)
 
 if not ML_AVAILABLE: st.error("⚠️ စနစ်တွင် Machine Learning (scikit-learn) မရှိပါ။ `requirements.txt` တွင် ထည့်ထားရန် သေချာပါစေ။")
 
@@ -502,7 +516,7 @@ mode = st.radio("⚙️ Engine Mode", ["🤖 AI Auto Mode", "✍️ Custom Mode"
 custom_lb = 50
 if "Custom" in mode: custom_lb = st.number_input("Backtest ပွဲစဉ်:", value=50)
 
-if st.button("🚀 V14.10 Ultimate Engine ကို Run မည်", use_container_width=True):
+if st.button("🚀 V14.11 Ultimate Engine ကို Run မည်", use_container_width=True):
     if len(st.session_state.history) < 90: st.warning("⚠️ Data အနည်းဆုံး ပွဲ ၉၀ လိုအပ်ပါသည်။")
     else:
         st.session_state.run_v14 = True
@@ -535,31 +549,36 @@ if st.session_state.get('run_v14'):
     if res_l['ml_future_pred']:
         if len(super_hot_2) > 0:
             m1 = super_hot_2[0]
-            # Filter AI Pool to exclude Master Core completely
             ai_pool = [x[0] for x in res_l['ml_future_pred'] if x[0] not in super_hot_2]
             pairs_1 = [f"{m1}{m1}"] + [f"{m1}{p}" for p in ai_pool[:4]]
             
         if len(super_hot_2) > 1:
             m2 = super_hot_2[1]
             pairs_2 = [f"{m2}{m2}"] + [f"{m2}{m1}"] + [f"{m2}{p}" for p in ai_pool[:3]]
+    else:
+        # Fallback if ML is unavailable
+        if len(super_hot_2) > 0:
+            partners_1 = get_best_partners(super_hot_2[0], res_p['timeline_used'])
+            pairs_1 = [f"{super_hot_2[0]}{super_hot_2[0]}"] + [f"{super_hot_2[0]}{p}" for p in partners_1]
+        if len(super_hot_2) > 1:
+            partners_2 = get_best_partners(super_hot_2[1], res_p['timeline_used'])
+            pairs_2 = [f"{super_hot_2[1]}{super_hot_2[1]}"] + [f"{super_hot_2[1]}{p}" for p in partners_2]
 
     # --- 🛡️ Recovery Shadow Core Logic (6 Pairs) ---
     pref_cold_idx = res_c['m3']['cm_idx'] + res_c['m3']['cs_idx']
     raw_cold_nums = [res_c['m3_next_raw'][i] for i in pref_cold_idx if i < len(res_c['m3_next_raw'])]
     
-    # Get Top 2 Cold numbers (excluding Master Core)
     safe_cold_pool = [n for n in raw_cold_nums if n not in super_hot_2]
     super_cold_2 = safe_cold_pool[:2] if len(safe_cold_pool) >= 2 else safe_cold_pool
 
-    # Get Hedge AI numbers (Top 2 AI dynamically avoiding Master Core)
     if res_l['ml_future_pred']:
         hedge_ai_pool = [x[0] for x in res_l['ml_future_pred'] if x[0] not in super_hot_2]
         hedge_ai_2 = hedge_ai_pool[:2] if len(hedge_ai_pool) >= 2 else hedge_ai_pool
     else:
         hedge_ai_2 = []
 
-    # Combine for 6 Pairs
-    recovery_4_digits = hedge_ai_2 + super_cold_2
+    # V14.11 Bug Fix: Remove duplicates before combination to prevent itertools ValueError
+    recovery_4_digits = list(dict.fromkeys(hedge_ai_2 + super_cold_2))
     mc_6_pairs = [f"{a}{b}" for a, b in itertools.combinations(recovery_4_digits, 2)]
     
     # --- ML Integration ---
@@ -573,7 +592,6 @@ if st.session_state.get('run_v14'):
     tab1, tab2, tab3, tab4 = st.tabs(["🎯 Summary (Executive)", "🌊 Pattern Matrix", "🚀 Deep Trend", "💎 Master Core (AI vs Math)"])
     
     with tab1:
-        
         # --- 🚀 Phase 5: Telegram Broadcast with Date Picker ---
         st.markdown("<div style='background-color:#16181D; padding:15px; border-radius:10px; margin-bottom:20px; border:1px solid #2D3748;'>", unsafe_allow_html=True)
         col_dt, col_btn = st.columns([1, 2])
@@ -597,8 +615,10 @@ if st.session_state.get('run_v14'):
                     if pairs_1: msg_body += f"      *{ ' '.join(pairs_1) }*\n"
                     if pairs_2: msg_body += f"      *{ ' '.join(pairs_2) }*\n"
 
-                    msg_body += f"\n⚔️ *ရွှေအကွက် (၆) ကွက်*\n"
-                    msg_body += f"      *{ ' '.join(mc_6_pairs) }*\n\n"
+                    if mc_6_pairs:
+                        msg_body += f"\n⚔️ *ရွှေအကွက် (၆) ကွက်*\n"
+                        msg_body += f"      *{ ' '.join(mc_6_pairs) }*\n\n"
+                        
                     msg_body += "🚀 အားလုံးပဲ ကံထူးပြီး အောင်ပွဲခံနိုင်ကြပါစေ ခင်ဗျာ! 💰"
                     
                     success = send_telegram_message(st.session_state.tg_token, st.session_state.tg_chat_id, msg_body)
@@ -642,14 +662,15 @@ if st.session_state.get('run_v14'):
         st.divider()
         
         st.markdown("<h4 style='text-align:center;'>⚔️ MASTER CORE (၆ ကွက်)</h4>", unsafe_allow_html=True)
-        html_mc = f"<div class='premium-box' style='border-color:#00E5FF; margin: 0 auto;'>"
-        if len(mc_6_pairs) >= 3:
-            html_mc += "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in mc_6_pairs[:3]]) + "<br><br>"
-            html_mc += "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in mc_6_pairs[3:]])
-        else:
-            html_mc += "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in mc_6_pairs])
-        html_mc += "</div>"
-        st.markdown(html_mc, unsafe_allow_html=True)
+        if mc_6_pairs:
+            html_mc = f"<div class='premium-box' style='border-color:#00E5FF; margin: 0 auto;'>"
+            if len(mc_6_pairs) >= 3:
+                html_mc += "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in mc_6_pairs[:3]]) + "<br><br>"
+                html_mc += "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in mc_6_pairs[3:]])
+            else:
+                html_mc += "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in mc_6_pairs])
+            html_mc += "</div>"
+            st.markdown(html_mc, unsafe_allow_html=True)
         
         c_disp_1 = super_cold_2[0] if len(super_cold_2) > 0 else "-"
         c_disp_2 = super_cold_2[1] if len(super_cold_2) > 1 else "-"
