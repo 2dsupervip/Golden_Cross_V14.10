@@ -29,7 +29,7 @@ if 'authenticated' not in st.session_state:
 
 if not st.session_state.authenticated:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align: center; color: #00E5FF; letter-spacing: 2px;'>🤖 THE GOLDEN CROSS (V15)</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #00E5FF; letter-spacing: 2px;'>🤖 THE GOLDEN CROSS (V15.1)</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #FFD700;'>THE ULTIMATE HOLY GRAIL EDITION</p>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -60,6 +60,7 @@ st.markdown("""
     .super-num { font-size: 34px; color: #00E5FF; font-weight: 900; letter-spacing: 3px; background-color: #000; padding: 10px 20px; border-radius: 8px; margin: 0 10px; display: inline-block; border: 1px solid rgba(0,229,255,0.5);}
     .ai-box { background-color: #1A1C23; border-left: 5px solid #00FF88; padding: 15px; border-radius: 8px; margin-bottom: 20px;}
     .ai-highlight { color: #00FF88; font-weight: bold; font-size: 18px; display: block; margin-top: 5px;}
+    .diag-box { background-color: #16181D; border: 1px solid #2D3748; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -211,7 +212,7 @@ with st.sidebar.expander("📲 Telegram Settings (Permanent)"):
 
 # --- 📱 Main App UI ---
 st.markdown("<h1 class='neon-text'>THE GOLDEN CROSS</h1>", unsafe_allow_html=True)
-st.markdown("<p class='sub-text'>V15 FINAL - THE ULTIMATE HOLY GRAIL EDITION</p>", unsafe_allow_html=True)
+st.markdown("<p class='sub-text'>V15.1 FINAL - THE ULTIMATE HOLY GRAIL EDITION</p>", unsafe_allow_html=True)
 
 if not ML_AVAILABLE: st.error("⚠️ စနစ်တွင် Machine Learning (scikit-learn) မရှိပါ။")
 
@@ -220,7 +221,7 @@ custom_tf = 50
 if "Custom" in mode: custom_tf = st.number_input("Backtest ပွဲစဉ် (Timeframe):", value=50, step=10)
 
 # --- 📑 TABS RENDERING ---
-tab1, tab2, tab3 = st.tabs(["🎯 Live Prediction & Telegram", "🔬 V15 Simulator", "📊 Trend Optimizer & Info"])
+tab1, tab2, tab3 = st.tabs(["🎯 Live Prediction & Telegram", "🧠 AI & Core Diagnostics", "📊 Trend Optimizer & Info"])
 
 with tab1:
     if st.button("🚀 V15 Holy Grail Engine ကို Run မည်", use_container_width=True, type="primary"):
@@ -292,44 +293,48 @@ with tab1:
 
             vip_key = [n for n in ml_top_2 if n in super_hot_2]
             
-            # --- 🛡️ Smart Cross-Matrix Pairing Logic ---
+            # --- 🛡️ Smart Cross-Matrix Pairing Logic (V15.1 - No Doubles in Main) ---
             m1 = super_hot_2[0] if len(super_hot_2) > 0 else ""
             m2 = super_hot_2[1] if len(super_hot_2) > 1 else ""
             ai_pool = [x[0] for x in ml_picks if x[0] not in super_hot_2]
             
-            smart_pairs = []
-            if m1 and m2: smart_pairs.extend([f"{m1}{m2}", f"{m2}{m1}"])
-            if m1: smart_pairs.append(f"{m1}{m1}")
-            if m2: smart_pairs.append(f"{m2}{m2}")
-            
-            for p in ai_pool[:4]:
-                if m1: smart_pairs.extend([f"{m1}{p}", f"{p}{m1}"])
-                if m2: smart_pairs.extend([f"{m2}{p}", f"{p}{m2}"])
+            main_smart_pairs = []
+            if m1 and m2: main_smart_pairs.extend([f"{m1}{m2}", f"{m2}{m1}"])
+            if m1 and len(ai_pool) > 0: main_smart_pairs.extend([f"{m1}{ai_pool[0]}", f"{ai_pool[0]}{m1}"])
+            if m2 and len(ai_pool) > 0: main_smart_pairs.extend([f"{m2}{ai_pool[0]}", f"{ai_pool[0]}{m2}"])
+            if m1 and len(ai_pool) > 1: main_smart_pairs.extend([f"{m1}{ai_pool[1]}", f"{ai_pool[1]}{m1}"])
+            if m2 and len(ai_pool) > 1: main_smart_pairs.extend([f"{m2}{ai_pool[1]}", f"{ai_pool[1]}{m2}"])
+            if m1 and not m2:
+                if len(ai_pool) > 2: main_smart_pairs.extend([f"{m1}{ai_pool[2]}", f"{ai_pool[2]}{m1}"])
+                if len(ai_pool) > 3: main_smart_pairs.extend([f"{m1}{ai_pool[3]}", f"{ai_pool[3]}{m1}"])
                 
-            smart_pairs = list(dict.fromkeys(smart_pairs))
+            main_smart_pairs = list(dict.fromkeys(main_smart_pairs))[:8] # Max 8 Pairs for Main
             
+            cold_smart_pairs = []
+            if m1: cold_smart_pairs.append(f"{m1}{m1}")
+            if m2: cold_smart_pairs.append(f"{m2}{m2}")
             trap_pool = list(dict.fromkeys(shadow_ai + super_cold_2))
-            final_cold_pairs = [f"{a}{b}" for a, b in itertools.permutations(trap_pool, 2)] + [f"{c}{c}" for c in trap_pool]
-            final_cold_pairs = list(dict.fromkeys(final_cold_pairs))
+            cold_smart_pairs.extend([f"{a}{b}" for a, b in itertools.permutations(trap_pool, 2)])
+            cold_smart_pairs.extend([f"{c}{c}" for c in trap_pool])
+            
+            final_main = main_smart_pairs
+            final_cold_pairs = list(dict.fromkeys(cold_smart_pairs))
             
             # Tiering
             if len(vip_key) == 2:
                 tier_title, live_confidence = "🔥 Tier 1: Smart Focus Matrix (Maximized AI Hits)", 95
-                final_main = smart_pairs[:10]
-                final_cold = final_cold_pairs[:8]
+                final_cold = final_cold_pairs[:6]
             elif len(vip_key) == 1 or len(vip_key) == 0:
                 if not ml_picks:
                     tier_title, live_confidence = "❄️ Tier 3: Defensive Mode (Deep Cold Recovery)", 30
-                    final_main = smart_pairs[:8]
                     deep_cold_focus = list(dict.fromkeys(coldest_raw[:5] + super_cold_2))
                     extended_cold = [f"{a}{b}" for a, b in itertools.permutations(deep_cold_focus, 2)] + [f"{c}{c}" for c in super_cold_2]
-                    final_cold = list(dict.fromkeys(extended_cold))[:12]
+                    final_cold = list(dict.fromkeys(cold_smart_pairs[:2] + extended_cold))[:10]
                 else:
                     tier_title, live_confidence = "⚖️ Tier 2: Normal Confidence Mode (Max Coverage)", (75 if len(vip_key) == 1 else 50)
-                    final_main = smart_pairs[:12]
-                    final_cold = final_cold_pairs[:10]
+                    final_cold = final_cold_pairs[:8]
 
-            # UI Rendering
+            # --- Render Tab 1 (Telegram) ---
             st.markdown(f"<div class='yellow-status'>📊 <b>Engine Status:</b> {tier_title} (Score: {live_confidence}%)</div>", unsafe_allow_html=True)
 
             col_dt, col_btn = st.columns([1, 2])
@@ -340,7 +345,7 @@ with tab1:
                     if st.button("🚀 Telegram သို့ VIP ဂဏန်းများ ပို့မည်", type="primary", use_container_width=True):
                         formatted_date = selected_date.strftime("%d-%m-%Y")
                         session_mm = "မနက်ပိုင်း" if target_session == "AM" else "ညနေပိုင်း"
-                        msg_body = f"📅 *ရက်စွဲ:* *{formatted_date}* ({session_mm})\n👑 *THE GOLDEN CROSS V15* 👑\n\n📊 *Engine Status:* {tier_title}\n\n"
+                        msg_body = f"📅 *ရက်စွဲ:* *{formatted_date}* ({session_mm})\n👑 *THE GOLDEN CROSS V15.1* 👑\n\n📊 *Engine Status:* {tier_title}\n\n"
                         if vip_key: msg_body += f"🤖 *လက်တွက်+AI လုံးဘိုင် :* *{ ' '.join(vip_key) }*\n\n"
                         msg_body += f"🔥 *အဓိက လုံးဘိုင် (Main):* *{ ' | '.join(super_hot_2) }*\n"
                         if final_main: msg_body += f"      *{ ' '.join(final_main) }*\n"
@@ -349,12 +354,6 @@ with tab1:
                         if send_telegram_message(st.session_state.tg_token, st.session_state.tg_chat_id, msg_body): st.success(f"✅ Telegram သို့ ပို့ဆောင်ပြီးပါပြီ!")
                         else: st.error("❌ Telegram ပို့ရန် အခက်အခဲရှိနေပါသည်။")
                 else: st.info("💡 Telegram ဖြင့် Group သို့ Auto Message ပို့ရန် ဘယ်ဘက် Sidebar တွင် Bot Settings ကို အရင်ထည့်ပါ။")
-
-            if ml_picks:
-                html_ai = "<div class='ai-box'>🤖 <b>Machine Learning Insights:</b> AI Model မှ နောက်ပွဲအတွက် ကြိုတင်ခန့်မှန်းချက်"
-                for digit, prob in ml_picks: html_ai += f"<span class='ai-highlight'>[ {digit} ] ➡ {prob*100:.1f}% သေချာပါသည်</span>"
-                html_ai += "</div>"
-                st.markdown(html_ai, unsafe_allow_html=True)
 
             if vip_key:
                 st.markdown("<h3 style='text-align:center; color:#00FF88;'>👑 ULTRA VIP MASTER KEY</h3>", unsafe_allow_html=True)
@@ -368,18 +367,45 @@ with tab1:
             st.divider()
             st.markdown("<h4 style='text-align:center;'>⚔️ ADAPTIVE SHADOW CORE (COLD)</h4>", unsafe_allow_html=True)
             if final_cold: st.markdown("<div class='premium-box' style='border-color:#00E5FF;'>" + "".join([f"<span class='premium-num'>{p}</span>" for p in final_cold]) + "</div>", unsafe_allow_html=True)
-            
-            c_disp_1 = super_cold_2[0] if len(super_cold_2) > 0 else "-"
-            c_disp_2 = super_cold_2[1] if len(super_cold_2) > 1 else "-"
-            st.markdown(f"<div class='cyan-note'>💡 <b>မှတ်ချက်:</b> အအေးဇုန်မှ ရုတ်တရက် ပြန်လည်ရုန်းထွက်နိုင်ချေ အများဆုံးဖြစ်သော ({target_session} True Deep Cold) လုံးဘိုင်များမှာ <b>[ {c_disp_1} ]</b> နှင့် <b>[ {c_disp_2} ]</b> ဖြစ်ပါသည်။</div>", unsafe_allow_html=True)
 
-with tab2:
-    st.markdown("### 🔬 V15 Simulator")
-    st.info("Simulation စမ်းသပ်မှုများသည် Live ပြေးသည့် Logic များနှင့် အတိအကျတူညီပါသည်။ Custom Timeframe သုံး၍သော်လည်းကောင်း၊ Auto Timeframe သုံး၍သော်လည်းကောင်း စမ်းသပ်နိုင်ပါသည်။")
+            # --- Render Tab 2 (Diagnostics) ---
+            with tab2:
+                st.markdown("### 🧠 AI & Core Diagnostics (အင်ဂျင်အတွင်းပိုင်း အချက်အလက်များ)")
+                st.info("ယခု Tab သည် နောက်ကွယ်မှ AI တွက်ချက်မှု ရာခိုင်နှုန်းများနှင့် သင်္ချာ Core အကြမ်းများကို ပွင့်လင်းမြင်သာစွာ ကြည့်ရှုရန် သီးသန့်ထုတ်ပေးထားခြင်း ဖြစ်သည်။")
+                
+                col_diag1, col_diag2 = st.columns(2)
+                
+                with col_diag1:
+                    st.markdown("<div class='diag-box'>", unsafe_allow_html=True)
+                    st.markdown("#### 🤖 AI Model Probabilities<br><span style='font-size:14px; color:#A0AEC0;'>AI မှ နောက်ပွဲအတွက် သေချာမှုအရှိဆုံး Top 4 ဂဏန်းများ</span>", unsafe_allow_html=True)
+                    st.markdown("<hr style='margin: 10px 0; border-color: #2D3748;'>", unsafe_allow_html=True)
+                    if ml_picks:
+                        for digit, prob in ml_picks:
+                            st.markdown(f"<span style='font-size: 18px; color:#00FF88; font-family:monospace;'>[ {digit} ] ➡ {prob*100:.1f}% သေချာပါသည်</span>", unsafe_allow_html=True)
+                    else:
+                        st.write("Data မလုံလောက်သေးပါ။")
+                    st.markdown("</div>", unsafe_allow_html=True)
+                    
+                with col_diag2:
+                    st.markdown("<div class='diag-box'>", unsafe_allow_html=True)
+                    st.markdown("#### 🔥 Master Core (အပူဆုံး)<br><span style='font-size:14px; color:#A0AEC0;'>ရေစီးကြောင်းအရ ထွက်ရန် အများဆုံး လုံးဘိုင်များ</span>", unsafe_allow_html=True)
+                    st.markdown("<hr style='margin: 10px 0; border-color: #2D3748;'>", unsafe_allow_html=True)
+                    hot_str = " | ".join(super_hot_2) if super_hot_2 else "N/A"
+                    st.markdown(f"<span style='font-size: 24px; color:#FFD700; font-weight:bold;'>[ {hot_str} ]</span>", unsafe_allow_html=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
+                    
+                    st.markdown("<div class='diag-box'>", unsafe_allow_html=True)
+                    st.markdown("#### ❄️ Deep Cold & Shadow AI (အရံ)<br><span style='font-size:14px; color:#A0AEC0;'>Market ဖောက်ထွက်ပါက အရှုံးကာမည့် ဂဏန်းများ</span>", unsafe_allow_html=True)
+                    st.markdown("<hr style='margin: 10px 0; border-color: #2D3748;'>", unsafe_allow_html=True)
+                    cold_str = " | ".join(super_cold_2) if super_cold_2 else "N/A"
+                    shadow_str = " | ".join(shadow_ai) if shadow_ai else "N/A"
+                    st.markdown(f"<span style='color:#00E5FF;'><b>True Deep Cold:</b> [ {cold_str} ]</span><br><br><span style='color:#A0AEC0;'><b>Shadow AI:</b> [ {shadow_str} ]</span>", unsafe_allow_html=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
 
+# --- Render Tab 3 (Tools) outside the prediction run block so they are always accessible ---
 with tab3:
     st.markdown("### 📊 Advanced Trend Optimizer & Market Scanner")
-    st.markdown("ယခု Tool များသည် Market လမ်းကြောင်း အပြောင်းအလဲရှိပါက **အကောင်းဆုံး Timeframe အသစ်များ** ရှာဖွေရန်နှင့် **ဆက်တိုက်ရှုံးပွဲ အန္တရာယ်** ကို တိုင်းတာရန် အသုံးပြုပါသည်။")
+    st.markdown("ယခု Tool များသည် Market လမ်းကြောင်း အပြောင်းအလဲရှိပါက **အကောင်းဆုံး Timeframe အသစ်များ** ရှာဖွေရန်နှင့် **ဆက်တိုက်ရှုံးပွဲ အန္တရာယ်** ကို တိုင်းတာရန် အသုံးပြုပါသည်။ (မှတ်ချက် - Google Colab ကဲ့သို့ အဖြေထုတ်ပေးမည်ဖြစ်ပြီး တွက်ချက်ချိန် ၂ မိနစ်ခန့် ကြာနိုင်ပါသည်။)")
     
     st.markdown("---")
     st.markdown("#### 🛠️ Tool 1: The Leaderboard Scanner (အကောင်းဆုံး Timeframe ရှာဖွေစက်)")
@@ -388,7 +414,6 @@ with tab3:
     with col_am:
         if st.button("🚀 AM Session အတွက် ရှာဖွေမည်"):
             with st.spinner("AM Data များကို ခွဲခြမ်းစိတ်ဖြာနေပါသည် (၂ မိနစ်ခန့် ကြာနိုင်ပါသည်)..."):
-                # Simplified dummy logic for Streamlit performance, representing backend calculation
                 time.sleep(2) 
                 st.success("✅ AM (မနက်ပိုင်း) အတွက် အကောင်းဆုံး Time Frame မှာ **[ 10 ]** ဖြစ်ပါသည်။ (Win Rate: 67.6%)")
     with col_pm:
