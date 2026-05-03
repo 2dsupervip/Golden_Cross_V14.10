@@ -143,7 +143,7 @@ def run_backend_engine(timeline, test_size):
             preds = raw_hist[i]
             for r_idx in range(len(preds)):
                 if preds[r_idx] in draw:
-                    # Distinguish between Main (1-5) and Cold (6-10) data groups
+                    # Distinguishing between Main (1-5) and Cold (6-10) data groups
                     if r_idx < 5: rank_hits_1_5[r_idx+1] += 1
                     else: rank_hits_6_10[r_idx+1] += 1
 
@@ -354,7 +354,7 @@ def get_v14_tri_recommendations(timeline):
             
     return best_lb_l, best_lb_p, best_lb_c
 
-# --- 🧪 Phase 4: A/B Testing Engine (Adaptive Logic) ---
+# --- 🧪 Phase 4: A/B Testing Engine (Adaptive Simulation) ---
 def run_adaptive_simulation(res_l, res_c, test_size):
     actuals = res_l['actuals']
     ml_logs = res_l['ml_logs'] if 'ml_logs' in res_l else []
@@ -555,9 +555,9 @@ with st.sidebar.expander("⚙️ Telegram Bot Settings"):
     if st.button("💾 သိမ်းမည်"):
         st.success("✅ Telegram Settings သိမ်းဆည်းပြီးပါပြီ။")
 
-# --- 📱 Main App UI (V14.12 Adaptive Simulation) ---
+# --- 📱 Main App UI (V14.12 Adaptive Engine) ---
 st.markdown("<h1 class='neon-text'>THE GOLDEN CROSS</h1>", unsafe_allow_html=True)
-st.markdown("<p class='sub-text'>V14.12 - ADAPTIVE LOGIC EDITION</p>", unsafe_allow_html=True)
+st.markdown("<p class='sub-text'>V14.12 - ADAPTIVE ENGINE EDITION</p>", unsafe_allow_html=True)
 
 if not ML_AVAILABLE: st.error("⚠️ စနစ်တွင် Machine Learning (scikit-learn) မရှိပါ။ `requirements.txt` တွင် ထည့်ထားရန် သေချာပါစေ။")
 
@@ -590,51 +590,82 @@ if st.session_state.get('run_v14'):
         res_l = res_p
         res_c = res_p
 
+    # --- 👑 Master Core & ML Setup ---
     super_hot_2 = res_l['m3_next']['m']
-    
-    pairs_1, pairs_2 = [], []
-    if res_l['ml_future_pred']:
-        if len(super_hot_2) > 0:
-            m1 = super_hot_2[0]
-            ai_pool = [x[0] for x in res_l['ml_future_pred'] if x[0] not in super_hot_2]
-            pairs_1 = [f"{m1}{m1}"] + [f"{m1}{p}" for p in ai_pool[:4]]
-            
-        if len(super_hot_2) > 1:
-            m2 = super_hot_2[1]
-            pairs_2 = [f"{m2}{m2}"] + [f"{m2}{m1}"] + [f"{m2}{p}" for p in ai_pool[:3]]
-    else:
-        if len(super_hot_2) > 0:
-            partners_1 = get_best_partners(super_hot_2[0], res_p['timeline_used'])
-            pairs_1 = [f"{super_hot_2[0]}{super_hot_2[0]}"] + [f"{super_hot_2[0]}{p}" for p in partners_1]
-        if len(super_hot_2) > 1:
-            partners_2 = get_best_partners(super_hot_2[1], res_p['timeline_used'])
-            pairs_2 = [f"{super_hot_2[1]}{super_hot_2[1]}"] + [f"{super_hot_2[1]}{p}" for p in partners_2]
-
-    pref_cold_idx = res_c['m3']['cm_idx'] + res_c['m3']['cs_idx']
-    raw_cold_nums = [res_c['m3_next_raw'][i] for i in pref_cold_idx if i < len(res_c['m3_next_raw'])]
-    
-    safe_cold_pool = [n for n in raw_cold_nums if n not in super_hot_2]
-    super_cold_2 = safe_cold_pool[:2] if len(safe_cold_pool) >= 2 else safe_cold_pool
-
-    if res_l['ml_future_pred']:
-        hedge_ai_pool = [x[0] for x in res_l['ml_future_pred'] if x[0] not in super_hot_2]
-        hedge_ai_2 = hedge_ai_pool[:2] if len(hedge_ai_pool) >= 2 else hedge_ai_pool
-    else:
-        hedge_ai_2 = []
-
-    recovery_4_digits = list(dict.fromkeys(hedge_ai_2 + super_cold_2))
-    mc_6_pairs = [f"{a}{b}" for a, b in itertools.combinations(recovery_4_digits, 2)]
-    
     ml_picks, ml_top_2 = [], []
     if res_l['ml_future_pred']:
         ml_picks = res_l['ml_future_pred'][:4]
         ml_top_2 = [ml_picks[0][0], ml_picks[1][0]]
     vip_key = [n for n in ml_top_2 if n in super_hot_2]
 
+    # --- 🧮 Adaptive Logic Confidence Calculation ---
+    live_confidence = 50 # Default Normal
+    if len(vip_key) == 2: live_confidence = 90
+    elif len(vip_key) == 1: live_confidence = 75
+    elif not ml_picks: live_confidence = 30
+
+    # Base Initial Pairs (Maximum Coverage)
+    base_pairs_1, base_pairs_2 = [], []
+    if res_l['ml_future_pred']:
+        if len(super_hot_2) > 0:
+            m1 = super_hot_2[0]
+            ai_pool = [x[0] for x in ml_picks if x[0] not in super_hot_2]
+            base_pairs_1 = [f"{m1}{m1}"] + [f"{m1}{p}" for p in ai_pool[:4]]
+        if len(super_hot_2) > 1:
+            m2 = super_hot_2[1]
+            base_pairs_2 = [f"{m2}{m2}"] + [f"{m2}{m1}"] + [f"{m2}{p}" for p in ai_pool[:3]]
+    else:
+        if len(super_hot_2) > 0:
+            partners_1 = get_best_partners(super_hot_2[0], res_p['timeline_used'])
+            base_pairs_1 = [f"{super_hot_2[0]}{super_hot_2[0]}"] + [f"{super_hot_2[0]}{p}" for p in partners_1]
+        if len(super_hot_2) > 1:
+            partners_2 = get_best_partners(super_hot_2[1], res_p['timeline_used'])
+            base_pairs_2 = [f"{super_hot_2[1]}{super_hot_2[1]}"] + [f"{super_hot_2[1]}{p}" for p in partners_2]
+
+    pref_cold_idx = res_c['m3']['cm_idx'] + res_c['m3']['cs_idx']
+    raw_cold_nums = [res_c['m3_next_raw'][i] for i in pref_cold_idx if i < len(res_c['m3_next_raw'])]
+    safe_cold_pool = [n for n in raw_cold_nums if n not in super_hot_2]
+    super_cold_2 = safe_cold_pool[:2] if len(safe_cold_pool) >= 2 else safe_cold_pool
+
+    hedge_ai_pool = [x[0] for x in ml_picks if x[0] not in super_hot_2] if ml_picks else []
+    hedge_ai_2 = hedge_ai_pool[:2] if len(hedge_ai_pool) >= 2 else hedge_ai_pool
+    recovery_4_digits = list(dict.fromkeys(hedge_ai_2 + super_cold_2))
+    base_mc_6_pairs = [f"{a}{b}" for a, b in itertools.combinations(recovery_4_digits, 2)]
+
+    # --- 🛡️ Execute Adaptive Tier Filtering ---
+    final_main_pairs_1, final_main_pairs_2, final_cold_pairs = [], [], []
+    tier_title = ""
+
+    if live_confidence >= 75:
+        tier_title = "🔥 Tier 1: High Confidence Mode (Focus Paring)"
+        # 4 Pairs Main
+        final_main_pairs_1 = base_pairs_1[:2]
+        final_main_pairs_2 = base_pairs_2[:2] if base_pairs_2 else base_pairs_1[2:4]
+        # 2 Pairs Cold
+        final_cold_pairs = base_mc_6_pairs[:2]
+    elif live_confidence >= 40:
+        tier_title = "⚖️ Tier 2: Normal Confidence Mode (Max Coverage)"
+        # 10 Pairs Main, 6 Pairs Cold
+        final_main_pairs_1 = base_pairs_1
+        final_main_pairs_2 = base_pairs_2
+        final_cold_pairs = base_mc_6_pairs
+    else:
+        tier_title = "❄️ Tier 3: Defensive Mode (Deep Cold Recovery)"
+        # 4 Pairs Main
+        final_main_pairs_1 = base_pairs_1[:2]
+        final_main_pairs_2 = base_pairs_2[:2] if base_pairs_2 else base_pairs_1[2:4]
+        # 8 Pairs Deep Cold
+        deep_cold_focus = list(dict.fromkeys(raw_cold_nums[:5] + super_cold_2))
+        extended_cold = [f"{a}{b}" for a, b in itertools.combinations(deep_cold_focus, 2)] + [f"{c}{c}" for c in super_cold_2]
+        final_cold_pairs = list(dict.fromkeys(extended_cold))[:8]
+
     # --- 📑 Render Tabs ---
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["🎯 Summary (Executive)", "🌊 Pattern Matrix", "🚀 Deep Trend", "💎 Master Core (AI vs Math)", "🔬 A/B Testing"])
     
     with tab1:
+        st.markdown(f"<div style='background-color:#1A1C23; padding:10px; border-radius:8px; border-left:4px solid #FF00FF; margin-bottom:20px; font-family:monospace;'>📊 <b>Engine Status:</b> {tier_title} (Score: {live_confidence}%)</div>", unsafe_allow_html=True)
+
+        # --- 🚀 Phase 6: Adaptive Telegram Broadcast ---
         st.markdown("<div style='background-color:#16181D; padding:15px; border-radius:10px; margin-bottom:20px; border:1px solid #2D3748;'>", unsafe_allow_html=True)
         col_dt, col_btn = st.columns([1, 2])
         with col_dt:
@@ -646,25 +677,26 @@ if st.session_state.get('run_v14'):
                     formatted_date = selected_date.strftime("%d-%m-%Y")
                     session_mm = "မနက်ပိုင်း" if target_session == "AM" else "ညနေပိုင်း"
                     
-                    msg_body = f"📅 *ရက်စွဲ:* {formatted_date} ({session_mm})\n"
-                    msg_body += f"👑 *THE GOLDEN CROSS* 👑\n\n"
+                    msg_body = f"📅 *ရက်စွဲ:* *{formatted_date}* ({session_mm})\n"
+                    msg_body += f"👑 *THE GOLDEN CROSS V14.12* 👑\n\n"
+                    msg_body += f"📊 *Engine Status:* {tier_title}\n\n"
                     
                     if vip_key: 
                         msg_body += f"🤖 *လက်တွက်+AI လုံးဘိုင် :* *{ ' '.join(vip_key) }*\n\n"
                         
                     msg_body += f"🔥 *အဓိက လုံးဘိုင်:* *{ ' | '.join(super_hot_2) }*\n"
                     
-                    if pairs_1: msg_body += f"      *{ ' '.join(pairs_1) }*\n"
-                    if pairs_2: msg_body += f"      *{ ' '.join(pairs_2) }*\n"
+                    if final_main_pairs_1: msg_body += f"      *{ ' '.join(final_main_pairs_1) }*\n"
+                    if final_main_pairs_2: msg_body += f"      *{ ' '.join(final_main_pairs_2) }*\n"
 
-                    if mc_6_pairs:
-                        msg_body += f"\n⚔️ *ရွှေအကွက် (၆) ကွက်*\n"
-                        msg_body += f"      *{ ' '.join(mc_6_pairs) }*\n\n"
+                    if final_cold_pairs:
+                        msg_body += f"\n⚔️ *ရွှေအကွက် (အရံ/အရှုံးကာ)*\n"
+                        msg_body += f"      *{ ' '.join(final_cold_pairs) }*\n\n"
                         
                     msg_body += "🚀 အားလုံးပဲ ကံထူးပြီး အောင်ပွဲခံနိုင်ကြပါစေ ခင်ဗျာ! 💰"
                     
                     success = send_telegram_message(st.session_state.tg_token, st.session_state.tg_chat_id, msg_body)
-                    if success: st.success(f"✅ {formatted_date} ရက်စွဲဖြင့် Telegram သို့ အောင်မြင်စွာ ပို့ဆောင်ပြီးပါပြီ!")
+                    if success: st.success(f"✅ *{formatted_date}* ရက်စွဲဖြင့် Telegram သို့ အောင်မြင်စွာ ပို့ဆောင်ပြီးပါပြီ!")
                     else: st.error("❌ Telegram ပို့ရန် အခက်အခဲရှိနေပါသည်။ API Token နှင့် Chat ID ကို ပြန်စစ်ပါ။")
             else:
                 st.info("💡 Telegram ဖြင့် Group သို့ Auto Message ပို့ရန် ဘယ်ဘက် Sidebar တွင် Bot Settings ကို အရင်ထည့်ပါ။")
@@ -678,39 +710,35 @@ if st.session_state.get('run_v14'):
 
         if vip_key:
             st.markdown("<h3 style='text-align:center; color:#00FF88; margin-top:10px;'>👑 ULTRA VIP MASTER KEY</h3>", unsafe_allow_html=True)
-            st.markdown(f"<p style='text-align:center; color:#A0AEC0;'>Tri-Engine (သင်္ချာစနစ်) နှင့် Random Forest (AI) ၂ ခုလုံးမှ ထောက်ခံထားသော (100% Confirmation) ဂဏန်း</p>", unsafe_allow_html=True)
             html_sm = "<div class='super-box' style='border-color:#00FF88;'>"
             html_sm += "".join([f"<span class='super-num' style='color:#00FF88; border-color:#00FF88;'>{p}</span>" for p in vip_key])
             html_sm += "</div>"
             st.markdown(html_sm, unsafe_allow_html=True)
             
-        st.markdown("<h3 style='text-align:center; color:#FFD700; margin-top:30px;'>👑 MASTER CORE (လုံးဘိုင် ၂ လုံး)</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align:center; color:#FFD700; margin-top:30px;'>👑 ADAPTIVE MASTER CORE</h3>", unsafe_allow_html=True)
         if len(super_hot_2) > 0:
-            
             html_master_core = "<div style='text-align:center; margin-bottom: 20px;'>"
             for lone in super_hot_2:
                 html_master_core += f"<span class='main-num-box'>{lone}</span>"
             html_master_core += "</div>"
             st.markdown(html_master_core, unsafe_allow_html=True)
             
-            st.markdown("<h4 style='text-align:center; color:#A0AEC0;'>လုံးဘိုင်နှင့် တွဲဖက်များ</h4>", unsafe_allow_html=True)
-            
             html_partners = "<div class='premium-box'>"
-            if pairs_1: html_partners += "<div style='margin-bottom:15px;'>" + "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in pairs_1]) + "</div>"
-            if pairs_2: html_partners += "<div>" + "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in pairs_2]) + "</div>"
+            if final_main_pairs_1: html_partners += "<div style='margin-bottom:15px;'>" + "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in final_main_pairs_1]) + "</div>"
+            if final_main_pairs_2: html_partners += "<div>" + "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in final_main_pairs_2]) + "</div>"
             html_partners += "</div>"
             st.markdown(html_partners, unsafe_allow_html=True)
             
         st.divider()
         
-        st.markdown("<h4 style='text-align:center;'>⚔️ MASTER CORE (၆ ကွက်)</h4>", unsafe_allow_html=True)
-        if mc_6_pairs:
+        st.markdown("<h4 style='text-align:center;'>⚔️ ADAPTIVE SHADOW CORE (Cold Recovery)</h4>", unsafe_allow_html=True)
+        if final_cold_pairs:
             html_mc = f"<div class='premium-box' style='border-color:#00E5FF; margin: 0 auto;'>"
-            if len(mc_6_pairs) >= 3:
-                html_mc += "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in mc_6_pairs[:3]]) + "<br><br>"
-                html_mc += "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in mc_6_pairs[3:]])
+            if len(final_cold_pairs) > 4:
+                html_mc += "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in final_cold_pairs[:4]]) + "<br><br>"
+                html_mc += "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in final_cold_pairs[4:]])
             else:
-                html_mc += "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in mc_6_pairs])
+                html_mc += "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in final_cold_pairs])
             html_mc += "</div>"
             st.markdown(html_mc, unsafe_allow_html=True)
         
@@ -719,15 +747,13 @@ if st.session_state.get('run_v14'):
         st.markdown(f"<div class='cyan-note'>💡 <b>မှတ်ချက်:</b> အအေးဇုန်မှ ရုတ်တရက် ပြန်လည်ရုန်းထွက်နိုင်ချေ အများဆုံးဖြစ်သော ({target_session} Best Cold) လုံးဘိုင်များမှာ <b>[ {c_disp_1} ]</b> နှင့် <b>[ {c_disp_2} ]</b> ဖြစ်ပါသည်။</div>", unsafe_allow_html=True)
 
     with tab2:
-        st.markdown("### 🌊 PATTERN MATRIX (၁၀ ကွက်)")
-        pm_10_pairs = pairs_1 + pairs_2
+        st.markdown("### 🌊 PATTERN MATRIX")
+        pm_all_pairs = base_pairs_1 + base_pairs_2
         html_pm_tab2 = "<div class='premium-box'>"
-        html_pm_tab2 += "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in pm_10_pairs[:5]]) + "<br><br>"
-        html_pm_tab2 += "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in pm_10_pairs[5:]])
+        html_pm_tab2 += "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in pm_all_pairs[:5]]) + "<br><br>"
+        html_pm_tab2 += "".join([f"<span style='margin:0 10px;'><span class='premium-num'>{p}</span></span>" for p in pm_all_pairs[5:]])
         html_pm_tab2 += "</div><br>"
         st.markdown(html_pm_tab2, unsafe_allow_html=True)
-        
-        st.markdown(f"### 📊 Pattern Matrix Engine Analysis ({target_session})")
         render_mode_tab(res_p['m1'], res_p['test_size'], res_p['m1_next']['m'], res_p['m1_next']['s'], res_p['m1_next']['cm'], res_p['m1_next']['cs'])
         
     with tab3:
@@ -736,30 +762,22 @@ if st.session_state.get('run_v14'):
         
     with tab4:
         st.markdown("### 🤖 Random Forest AI vs ⚙️ Math Engine")
-        st.markdown(f"<p class='sub-text'>နောက်ဆုံး {res_l['test_size']} ပွဲအပေါ် AI နှင့် သင်္ချာစနစ်၏ စမ်းသပ်အောင်မြင်မှု နှိုင်းယှဉ်ချက်</p>", unsafe_allow_html=True)
-        
         c1, c2 = st.columns(2)
-        with c1:
-            st.markdown(f"<div class='super-box' style='border-color:#00FF88;'><h3 style='color:#00FF88;'>🤖 ML AI Win Rate</h3><h2>{(res_l['ml_win_count']/res_l['test_size'])*100:.1f}%</h2></div>", unsafe_allow_html=True)
+        with c1: st.markdown(f"<div class='super-box' style='border-color:#00FF88;'><h3 style='color:#00FF88;'>🤖 ML AI Win Rate</h3><h2>{(res_l['ml_win_count']/res_l['test_size'])*100:.1f}%</h2></div>", unsafe_allow_html=True)
         with c2:
             m3_hit = res_l['m3']['stats']['m_hit'] + res_l['m3']['stats']['jp_12'] + res_l['m3']['stats']['mm_2']
             st.markdown(f"<div class='super-box' style='border-color:#FFD700;'><h3 style='color:#FFD700;'>⚙️ Math Engine Win Rate</h3><h2>{(m3_hit/res_l['test_size'])*100:.1f}%</h2></div>", unsafe_allow_html=True)
-            
         with st.expander("📊 AI Model ၏ စမ်းသပ်မှတ်တမ်းအသေးစိတ် ကြည့်ရန်"):
             for log in res_l['ml_logs']: st.markdown(f"<div class='log-card'>{log}</div>", unsafe_allow_html=True)
-            
         st.markdown("---")
         st.markdown(f"### 💎 Master Core Analysis ({target_session} Math Logic)")
         render_mode_tab(res_l['m3'], res_l['test_size'], res_l['m3_next']['m'], res_l['m3_next']['s'], res_l['m3_next']['cm'], res_l['m3_next']['cs'])
         
     with tab5:
         st.markdown("### 🔬 A/B Testing: Static vs Adaptive Engine")
-        st.markdown("<p style='color:#A0AEC0;'>ပုံသေ ၁၆ ကွက်စနစ်နှင့် အခြေအနေပေါ်မူတည်ပြီး အကွက်ပြောင်းသော စနစ်သစ် ယှဉ်ပြိုင်မှုမှတ်တမ်း</p>", unsafe_allow_html=True)
-
         if st.button("🚀 Run Adaptive Simulation", use_container_width=True):
             with st.spinner("AI နှင့် Math Engine တို့၏ နောက်ကြောင်းပြန် အချက်အလက်များကို ခွဲခြမ်းစိတ်ဖြာနေပါသည်..."):
                 sim_df = run_adaptive_simulation(res_l, res_c, res_l['test_size'])
-                
                 st.dataframe(sim_df, use_container_width=True)
                 
                 static_wins = len(sim_df[sim_df['Static Result'] == 'Win'])
@@ -777,12 +795,9 @@ if st.session_state.get('run_v14'):
                 
                 current_time_str = datetime.now().strftime("%Y%m%d_%H%M")
                 export_filename = f"GoldenCross_V14.12_Simulation_{current_time_str}.xlsx"
-                
                 st.download_button(
                     label="📥 Simulation Data ကို Excel ဖြင့် ဒေါင်းလုဒ်လုပ်မည်",
-                    data=buffer.getvalue(),
-                    file_name=export_filename,
+                    data=buffer.getvalue(), file_name=export_filename,
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    type="primary",
-                    use_container_width=True
+                    type="primary", use_container_width=True
                 )
