@@ -6,6 +6,8 @@ import warnings
 import requests
 from datetime import datetime
 import io
+import json
+import os
 
 # --- 🤖 Machine Learning Integration ---
 try:
@@ -25,8 +27,8 @@ if 'authenticated' not in st.session_state:
 
 if not st.session_state.authenticated:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align: center; color: #00E5FF; letter-spacing: 2px;'>🤖 THE GOLDEN CROSS (V14.14)</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #FFD700;'>THE HOLY GRAIL EDITION (72%+ WIN RATE)</p>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #00E5FF; letter-spacing: 2px;'>🤖 THE GOLDEN CROSS (V15)</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #FFD700;'>THE ULTIMATE HOLY GRAIL EDITION</p>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -116,8 +118,8 @@ def get_best_partners(target, hist_tuples):
         if str(i) not in sorted_p: sorted_p.append(str(i))
     return sorted_p[:4]
 
-# --- 🧪 Phase 4: A/B Testing Engine (V14.14 72% Logic Simulation) ---
-def run_v14_14_simulation(timeline, test_size=50):
+# --- 🧪 Phase 4: A/B Testing Engine (V15 Logic Simulation) ---
+def run_v15_simulation(timeline, test_size=50):
     total_draws = len(timeline)
     test_size = min(test_size, total_draws - 45)
     start_idx = total_draws - test_size
@@ -201,7 +203,7 @@ def run_v14_14_simulation(timeline, test_size=50):
             is_main_hit = actual_str[0] in super_hot_2 or actual_str[1] in super_hot_2
             is_trap_recovered = (actual_str[0] in m_cold or actual_str[1] in m_cold) or (actual_str[0] in shadow_ai or actual_str[1] in shadow_ai)
             hit_status = "Win" if is_main_hit or is_trap_recovered else "Loss"
-            adaptive_cost = 6 + len(shadow_ai) * 2 # Main 4 + Cold 2 + Shadow AI pairs
+            adaptive_cost = 6 + len(shadow_ai) * 2
         elif len(vip_key) == 1:
             tier = "Tier 2" 
             confidence = 75
@@ -258,8 +260,6 @@ uploaded_file = st.sidebar.file_uploader("Excel ဖိုင် တင်ရန�
 
 if 'history' not in st.session_state: st.session_state.history = []
 if 'last_uploaded' not in st.session_state: st.session_state.last_uploaded = None
-if 'tg_token' not in st.session_state: st.session_state.tg_token = ""
-if 'tg_chat_id' not in st.session_state: st.session_state.tg_chat_id = ""
 
 if uploaded_file is not None:
     file_id = f"{uploaded_file.name}_{uploaded_file.size}"
@@ -284,7 +284,7 @@ if uploaded_file is not None:
         except Exception as e: st.sidebar.error(f"❌ Error: {e}")
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 📝 Live Data Entry (V14.14)")
+st.sidebar.markdown("### 📝 Live Data Entry (V15)")
 
 if st.session_state.history:
     last_entry = st.session_state.history[-1]
@@ -321,15 +321,38 @@ if st.sidebar.button("↩️ Undo (ပြန်ဖျက်မည်)"):
         if hasattr(st, "rerun"): st.rerun()
         else: st.experimental_rerun()
 
-with st.sidebar.expander("⚙️ Telegram Bot Settings"):
-    st.text_input("Bot Token", key="tg_token", type="password")
-    st.text_input("Chat ID / Group ID", key="tg_chat_id")
-    if st.button("💾 သိမ်းမည်"):
-        st.success("✅ Telegram Settings သိမ်းဆည်းပြီးပါပြီ။")
+# --- ⚙️ Telegram Bot Settings (Permanent Storage) ---
+CONFIG_FILE = "telegram_config.json"
 
-# --- 📱 Main App UI (V14.14 Target 72% Engine) ---
+if 'tg_token' not in st.session_state or 'tg_chat_id' not in st.session_state:
+    st.session_state.tg_token = ""
+    st.session_state.tg_chat_id = ""
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                config_data = json.load(f)
+                st.session_state.tg_token = config_data.get("token", "")
+                st.session_state.tg_chat_id = config_data.get("chat_id", "")
+        except Exception:
+            pass
+
+with st.sidebar.expander("⚙️ Telegram Bot Settings"):
+    tg_token_input = st.text_input("Bot Token", value=st.session_state.tg_token, type="password")
+    tg_chat_input = st.text_input("Chat ID / Group ID", value=st.session_state.tg_chat_id)
+    
+    if st.button("💾 အမြဲတမ်း သိမ်းမည်"):
+        st.session_state.tg_token = tg_token_input
+        st.session_state.tg_chat_id = tg_chat_input
+        try:
+            with open(CONFIG_FILE, "w") as f:
+                json.dump({"token": tg_token_input, "chat_id": tg_chat_input}, f)
+            st.success("✅ အမြဲတမ်း သိမ်းဆည်းပြီးပါပြီ။ App ပိတ်လိုက်လည်း မပျောက်တော့ပါ။")
+        except Exception as e:
+            st.error(f"❌ File သိမ်းဆည်းရာတွင် အမှားအယွင်းဖြစ်နေပါသည်: {e}")
+
+# --- 📱 Main App UI (V15 Ultimate Engine) ---
 st.markdown("<h1 class='neon-text'>THE GOLDEN CROSS</h1>", unsafe_allow_html=True)
-st.markdown("<p class='sub-text'>V14.14 - THE HOLY GRAIL EDITION (MOMENTUM & ANTI-TRAP)</p>", unsafe_allow_html=True)
+st.markdown("<p class='sub-text'>V15 - THE ULTIMATE HOLY GRAIL EDITION (MOMENTUM & ANTI-TRAP)</p>", unsafe_allow_html=True)
 
 if not ML_AVAILABLE: st.error("⚠️ စနစ်တွင် Machine Learning (scikit-learn) မရှိပါ။ `requirements.txt` တွင် ထည့်ထားရန် သေချာပါစေ။")
 
@@ -337,21 +360,21 @@ mode = st.radio("⚙️ Engine Mode", ["🤖 AI Auto Mode", "✍️ Custom Mode"
 custom_lb = 50
 if "Custom" in mode: custom_lb = st.number_input("Backtest ပွဲစဉ်:", value=50)
 
-if st.button("🚀 V14.14 Holy Grail Engine ကို Run မည်", use_container_width=True):
+if st.button("🚀 V15 Holy Grail Engine ကို Run မည်", use_container_width=True):
     if len(st.session_state.history) < 90: st.warning("⚠️ Data အနည်းဆုံး ပွဲ ၉၀ လိုအပ်ပါသည်။")
     else:
-        st.session_state.run_v14 = True
+        st.session_state.run_v15 = True
         st.session_state.selected_mode = mode
         st.session_state.custom_lb = custom_lb
 
-if st.session_state.get('run_v14'):
+if st.session_state.get('run_v15'):
     hist = st.session_state.history
     target_session = "PM" if hist[-1]['session'] == "AM" else "AM"
     target_timeline = [item['draw'] for item in hist if item['session'] == target_session]
     
     st.success(f"🕒 **Temporal Lock Activated:** AI သည် **({target_session})** သမိုင်းကြောင်း သီးသန့်ကို ခွဲထုတ်၍ ခန့်မှန်းနေပါသည်။")
     
-    # --- 🧠 V14.14 Holy Grail Engine Prediction Logic ---
+    # --- 🧠 V15 Engine Prediction Logic ---
     m1_raw = get_mode1_raw_ranks(target_timeline)
     m2_raw = get_mode2_raw_ranks(target_timeline)
     
@@ -438,17 +461,15 @@ if st.session_state.get('run_v14'):
     recovery_4_digits = list(dict.fromkeys(hedge_ai_2 + super_cold_2))
     base_mc_6_pairs = [f"{a}{b}" for a, b in itertools.combinations(recovery_4_digits, 2)]
 
-    # --- 🛡️ Execute Adaptive Tier Filtering (V14.14 Logic) ---
+    # --- 🛡️ Execute Adaptive Tier Filtering (V15 Logic) ---
     final_main_pairs_1, final_main_pairs_2, final_cold_pairs = [], [], []
     tier_title = ""
 
     if len(vip_key) == 2:
         tier_title = "🔥 Tier 1: Anti-Trap Shield Mode (Focus + Recovery)"
         live_confidence = 95
-        # Main 4 Pairs
         final_main_pairs_1 = base_pairs_1[:2]
         final_main_pairs_2 = base_pairs_2[:2] if base_pairs_2 else base_pairs_1[2:4]
-        # Anti-Trap Shadow Core
         trap_pool = list(dict.fromkeys(shadow_ai + super_cold_2))
         final_cold_pairs = [f"{a}{b}" for a, b in itertools.combinations(trap_pool, 2)] + [f"{c}{c}" for c in trap_pool]
         final_cold_pairs = list(dict.fromkeys(final_cold_pairs))[:6]
@@ -469,12 +490,11 @@ if st.session_state.get('run_v14'):
             final_cold_pairs = base_mc_6_pairs
 
     # --- 📑 Render Tabs ---
-    tab1, tab2, tab3 = st.tabs(["🎯 Live Prediction & Telegram", "🔬 V14.14 72% Backtest Simulator", "📊 System Info"])
+    tab1, tab2, tab3 = st.tabs(["🎯 Live Prediction & Telegram", "🔬 V15 Simulation Backtest", "📊 System Info"])
     
     with tab1:
         st.markdown(f"<div style='background-color:#1A1C23; padding:10px; border-radius:8px; border-left:4px solid #FF00FF; margin-bottom:20px; font-family:monospace;'>📊 <b>Engine Status:</b> {tier_title} (Score: {live_confidence}%)</div>", unsafe_allow_html=True)
 
-        # --- 🚀 Phase 6: Adaptive Telegram Broadcast ---
         st.markdown("<div style='background-color:#16181D; padding:15px; border-radius:10px; margin-bottom:20px; border:1px solid #2D3748;'>", unsafe_allow_html=True)
         col_dt, col_btn = st.columns([1, 2])
         with col_dt:
@@ -487,7 +507,7 @@ if st.session_state.get('run_v14'):
                     session_mm = "မနက်ပိုင်း" if target_session == "AM" else "ညနေပိုင်း"
                     
                     msg_body = f"📅 *ရက်စွဲ:* *{formatted_date}* ({session_mm})\n"
-                    msg_body += f"👑 *THE GOLDEN CROSS V14.14* 👑\n\n"
+                    msg_body += f"👑 *THE GOLDEN CROSS V15* 👑\n\n"
                     msg_body += f"📊 *Engine Status:* {tier_title}\n\n"
                     
                     if vip_key: 
@@ -556,13 +576,13 @@ if st.session_state.get('run_v14'):
         st.markdown(f"<div class='cyan-note'>💡 <b>မှတ်ချက်:</b> အအေးဇုန်မှ ရုတ်တရက် ပြန်လည်ရုန်းထွက်နိုင်ချေ အများဆုံးဖြစ်သော ({target_session} True Deep Cold) လုံးဘိုင်များမှာ <b>[ {c_disp_1} ]</b> နှင့် <b>[ {c_disp_2} ]</b> ဖြစ်ပါသည်။</div>", unsafe_allow_html=True)
 
     with tab2:
-        st.markdown("### 🔬 V14.14 A/B Testing Simulator (Target 72%)")
+        st.markdown("### 🔬 V15 A/B Testing Simulator")
         st.markdown("<p style='color:#A0AEC0;'>Momentum Boost နှင့် Anti-Trap Protocol စနစ်များ အလုပ်လုပ်ပုံကို နောက်ကြောင်းပြန် စမ်းသပ်ခြင်း</p>", unsafe_allow_html=True)
 
-        if st.button("🚀 Run V14.14 Diagnostic Simulation", use_container_width=True):
+        if st.button("🚀 Run V15 Diagnostic Simulation", use_container_width=True):
             with st.spinner("Holy Grail Engine ၏ နောက်ကြောင်းပြန် အချက်အလက်များကို ခွဲခြမ်းစိတ်ဖြာနေပါသည်... (ကျေးဇူးပြု၍ ခေတ္တစောင့်ပါ)"):
                 test_size_val = st.session_state.custom_lb if "Custom" in st.session_state.selected_mode else 50
-                sim_df = run_v14_14_simulation(target_timeline, test_size_val)
+                sim_df = run_v15_simulation(target_timeline, test_size_val)
                 st.dataframe(sim_df, use_container_width=True)
                 
                 wins = len(sim_df[sim_df['Result'] == 'Win'])
@@ -570,7 +590,7 @@ if st.session_state.get('run_v14'):
                 total_cost = sim_df['Cost (Pairs)'].sum()
                 
                 col1, col2 = st.columns(2)
-                col1.info(f"**V14.14 Holy Grail Win Rate**\n\n🎯 Matches Won: {wins} / {total_played} ပွဲ\n📈 Accuracy: {(wins/total_played)*100:.1f}%")
+                col1.info(f"**V15 Holy Grail Win Rate**\n\n🎯 Matches Won: {wins} / {total_played} ပွဲ\n📈 Accuracy: {(wins/total_played)*100:.1f}%")
                 col2.success(f"**Cost Analysis**\n\n💰 စုစုပေါင်း ရင်းနှီးရသည့်အကွက်: {total_cost} ကွက်\n(Average: {total_cost/total_played:.1f} pairs/draw)")
                 
                 buffer = io.BytesIO()
@@ -578,7 +598,7 @@ if st.session_state.get('run_v14'):
                     sim_df.to_excel(writer, index=False, sheet_name='Simulation_Results')
                 
                 current_time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-                export_filename = f"GoldenCross_V14.14_Simulation_{current_time_str}.xlsx"
+                export_filename = f"GoldenCross_V15_Simulation_{current_time_str}.xlsx"
                 
                 st.download_button(
                     label="📥 Simulation Data ကို Excel ဖြင့် ဒေါင်းလုဒ်လုပ်မည်",
@@ -590,10 +610,11 @@ if st.session_state.get('run_v14'):
                 )
                 
     with tab3:
-        st.markdown("### ⚙️ V14.14 System Architecture Info")
+        st.markdown("### ⚙️ V15 System Architecture Info")
         st.info("""
         **1. 🚀 Momentum Math Boost:** နောက်ဆုံး ၅ ပွဲတွင် ထွက်ခဲ့သော ဂဏန်းများကို အခြေခံ၍ Trend ကို +0.5 အားဖြည့်ပေးထားသည်။\n
         **2. ❄️ True Deep Cold Tracking:** အရင်လို အလယ်အလတ်ဂဏန်းများမပါဘဲ၊ နောက်ဆုံး ပွဲ ၃၀ အတွင်း အထွက်အနည်းဆုံး ဂဏန်း ၂ လုံးတိတိကို ရှာဖွေပေးသည်။\n
         **3. 🧠 AI Synapse Tuning:** Random Forest `max_depth=7` ဖြင့် အလွတ်ကျက်ခြင်းမှ ကင်းဝေးပြီး Data Leakage (Lookahead Bias) ကို လုံးဝ ကာကွယ်ထားသည်။\n
-        **4. 🛡️ Anti-Trap Protocol:** Main နှင့် Cold Group ခွဲခြားမှုတွင် AI False Consensus ဖြစ်ခဲ့လျှင် Shadow AI မှတစ်ဆင့် ချက်ချင်း ပြန်လည်ဆယ်ယူပေးသည်။
+        **4. 🛡️ Anti-Trap Protocol:** Main နှင့် Cold Group ခွဲခြားမှုတွင် AI False Consensus ဖြစ်ခဲ့လျှင် Shadow AI မှတစ်ဆင့် ချက်ချင်း ပြန်လည်ဆယ်ယူပေးသည်။\n
+        **5. 💾 Permanent Storage:** Telegram Bot Token နှင့် Chat ID များကို JSON file ဖြင့် အမြဲတမ်း သိမ်းဆည်းပေးထားသည်။
         """)
