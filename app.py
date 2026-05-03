@@ -5,6 +5,7 @@ from collections import Counter
 import warnings
 import requests
 from datetime import datetime
+import io
 
 # --- 🤖 Machine Learning Integration ---
 try:
@@ -24,8 +25,8 @@ if 'authenticated' not in st.session_state:
 
 if not st.session_state.authenticated:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align: center; color: #00E5FF; letter-spacing: 2px;'>🤖 THE GOLDEN CROSS (V14.11)</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #A0AEC0;'>BUG-FREE MASTERPIECE EDITION</p>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #00E5FF; letter-spacing: 2px;'>🤖 THE GOLDEN CROSS (V14.12)</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #A0AEC0;'>ADAPTIVE ENGINE EDITION</p>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -142,6 +143,7 @@ def run_backend_engine(timeline, test_size):
             preds = raw_hist[i]
             for r_idx in range(len(preds)):
                 if preds[r_idx] in draw:
+                    # Distinguish between Main (1-5) and Cold (6-10) data groups
                     if r_idx < 5: rank_hits_1_5[r_idx+1] += 1
                     else: rank_hits_6_10[r_idx+1] += 1
 
@@ -352,7 +354,56 @@ def get_v14_tri_recommendations(timeline):
             
     return best_lb_l, best_lb_p, best_lb_c
 
-# --- 🌐 Phase 4: API Auto-Fetcher Helper ---
+# --- 🧪 Phase 4: A/B Testing Engine (Adaptive Logic) ---
+def run_adaptive_simulation(res_l, res_c, test_size):
+    actuals = res_l['actuals']
+    ml_logs = res_l['ml_logs'] if 'ml_logs' in res_l else []
+    simulation_records = []
+    
+    for i in range(len(actuals)):
+        draw = actuals[i]
+        mains_hist = res_l['m3']['mains_hist'][i]
+        secs_hist = res_l['m3']['secs_hist'][i]
+        cm_hist = res_c['m3']['cm_hist'][i]
+        cs_hist = res_c['m3']['cs_hist'][i]
+        
+        is_ml_correct = any(draw in log for log in ml_logs) if ml_logs else False
+        is_math_main_correct = draw[0] in mains_hist or draw[1] in mains_hist
+        
+        confidence_score = 50 
+        if is_ml_correct and is_math_main_correct: confidence_score = 85 
+        elif not is_ml_correct and not is_math_main_correct: confidence_score = 30 
+            
+        if confidence_score >= 75:
+            tier = "Tier 1 (High)"
+            adaptive_cost = 6 
+            adaptive_hit = "Win" if is_math_main_correct else "Loss"
+        elif confidence_score >= 40:
+            tier = "Tier 2 (Normal)"
+            adaptive_cost = 16 
+            adaptive_hit = "Win" if (is_math_main_correct or (draw[0] in cm_hist or draw[1] in cm_hist)) else "Loss"
+        else:
+            tier = "Tier 3 (Low)"
+            adaptive_cost = 12 
+            adaptive_hit = "Win" if (draw[0] in cm_hist or draw[1] in cm_hist) else "Loss"
+            
+        static_cost = 16
+        static_hit = "Win" if (is_math_main_correct or (draw[0] in cm_hist or draw[1] in cm_hist)) else "Loss"
+        
+        simulation_records.append({
+            "Match": f"ပွဲ {i+1}",
+            "Actual Result": draw,
+            "Confidence Score": f"{confidence_score}%",
+            "Adaptive Tier": tier,
+            "Static Cost (Pairs)": static_cost,
+            "Static Result": static_hit,
+            "Adaptive Cost (Pairs)": adaptive_cost,
+            "Adaptive Result": adaptive_hit
+        })
+        
+    return pd.DataFrame(simulation_records)
+
+# --- 🌐 Phase 5: API Auto-Fetcher Helper ---
 def fetch_live_2d():
     try:
         response = requests.get("https://api.thaistock2d.com/live", timeout=5)
@@ -365,7 +416,7 @@ def fetch_live_2d():
     except Exception:
         return None
 
-# --- 📲 Phase 5: Telegram Sender Helper ---
+# --- 📲 Phase 6: Telegram Sender Helper ---
 def send_telegram_message(token, chat_id, message):
     if not token or not chat_id: return False
     url = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -431,7 +482,6 @@ if 'history' not in st.session_state:
 if 'last_uploaded' not in st.session_state:
     st.session_state.last_uploaded = None
 
-# V14.11 Bug Fix: Properly initialize keys for state widgets
 if 'tg_token' not in st.session_state: 
     st.session_state.tg_token = ""
 if 'tg_chat_id' not in st.session_state: 
@@ -461,7 +511,7 @@ if uploaded_file is not None:
         except Exception as e: st.sidebar.error(f"❌ Error: {e}")
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 📝 Live Data Entry (V14.11)")
+st.sidebar.markdown("### 📝 Live Data Entry (V14.12)")
 
 if st.session_state.history:
     last_entry = st.session_state.history[-1]
@@ -499,16 +549,15 @@ if st.sidebar.button("↩️ Undo (ပြန်ဖျက်မည်)"):
         if hasattr(st, "rerun"): st.rerun()
         else: st.experimental_rerun()
 
-# --- 📲 Phase 5: Telegram Config UI (V14.11 BUG FIX) ---
 with st.sidebar.expander("⚙️ Telegram Bot Settings"):
     st.text_input("Bot Token", key="tg_token", type="password")
     st.text_input("Chat ID / Group ID", key="tg_chat_id")
     if st.button("💾 သိမ်းမည်"):
         st.success("✅ Telegram Settings သိမ်းဆည်းပြီးပါပြီ။")
 
-# --- 📱 Main App UI (V14.11 Final) ---
+# --- 📱 Main App UI (V14.12 Adaptive Simulation) ---
 st.markdown("<h1 class='neon-text'>THE GOLDEN CROSS</h1>", unsafe_allow_html=True)
-st.markdown("<p class='sub-text'>V14.11 - BUG-FREE MASTERPIECE</p>", unsafe_allow_html=True)
+st.markdown("<p class='sub-text'>V14.12 - ADAPTIVE LOGIC EDITION</p>", unsafe_allow_html=True)
 
 if not ML_AVAILABLE: st.error("⚠️ စနစ်တွင် Machine Learning (scikit-learn) မရှိပါ။ `requirements.txt` တွင် ထည့်ထားရန် သေချာပါစေ။")
 
@@ -516,7 +565,7 @@ mode = st.radio("⚙️ Engine Mode", ["🤖 AI Auto Mode", "✍️ Custom Mode"
 custom_lb = 50
 if "Custom" in mode: custom_lb = st.number_input("Backtest ပွဲစဉ်:", value=50)
 
-if st.button("🚀 V14.11 Ultimate Engine ကို Run မည်", use_container_width=True):
+if st.button("🚀 V14.12 Ultimate Engine ကို Run မည်", use_container_width=True):
     if len(st.session_state.history) < 90: st.warning("⚠️ Data အနည်းဆုံး ပွဲ ၉၀ လိုအပ်ပါသည်။")
     else:
         st.session_state.run_v14 = True
@@ -541,10 +590,8 @@ if st.session_state.get('run_v14'):
         res_l = res_p
         res_c = res_p
 
-    # --- 👑 Master Core Resolution ---
     super_hot_2 = res_l['m3_next']['m']
     
-    # --- 🤖 Max Coverage AI Logic (10 Pairs) ---
     pairs_1, pairs_2 = [], []
     if res_l['ml_future_pred']:
         if len(super_hot_2) > 0:
@@ -556,7 +603,6 @@ if st.session_state.get('run_v14'):
             m2 = super_hot_2[1]
             pairs_2 = [f"{m2}{m2}"] + [f"{m2}{m1}"] + [f"{m2}{p}" for p in ai_pool[:3]]
     else:
-        # Fallback if ML is unavailable
         if len(super_hot_2) > 0:
             partners_1 = get_best_partners(super_hot_2[0], res_p['timeline_used'])
             pairs_1 = [f"{super_hot_2[0]}{super_hot_2[0]}"] + [f"{super_hot_2[0]}{p}" for p in partners_1]
@@ -564,7 +610,6 @@ if st.session_state.get('run_v14'):
             partners_2 = get_best_partners(super_hot_2[1], res_p['timeline_used'])
             pairs_2 = [f"{super_hot_2[1]}{super_hot_2[1]}"] + [f"{super_hot_2[1]}{p}" for p in partners_2]
 
-    # --- 🛡️ Recovery Shadow Core Logic (6 Pairs) ---
     pref_cold_idx = res_c['m3']['cm_idx'] + res_c['m3']['cs_idx']
     raw_cold_nums = [res_c['m3_next_raw'][i] for i in pref_cold_idx if i < len(res_c['m3_next_raw'])]
     
@@ -577,11 +622,9 @@ if st.session_state.get('run_v14'):
     else:
         hedge_ai_2 = []
 
-    # V14.11 Bug Fix: Remove duplicates before combination to prevent itertools ValueError
     recovery_4_digits = list(dict.fromkeys(hedge_ai_2 + super_cold_2))
     mc_6_pairs = [f"{a}{b}" for a, b in itertools.combinations(recovery_4_digits, 2)]
     
-    # --- ML Integration ---
     ml_picks, ml_top_2 = [], []
     if res_l['ml_future_pred']:
         ml_picks = res_l['ml_future_pred'][:4]
@@ -589,10 +632,9 @@ if st.session_state.get('run_v14'):
     vip_key = [n for n in ml_top_2 if n in super_hot_2]
 
     # --- 📑 Render Tabs ---
-    tab1, tab2, tab3, tab4 = st.tabs(["🎯 Summary (Executive)", "🌊 Pattern Matrix", "🚀 Deep Trend", "💎 Master Core (AI vs Math)"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🎯 Summary (Executive)", "🌊 Pattern Matrix", "🚀 Deep Trend", "💎 Master Core (AI vs Math)", "🔬 A/B Testing"])
     
     with tab1:
-        # --- 🚀 Phase 5: Telegram Broadcast with Date Picker ---
         st.markdown("<div style='background-color:#16181D; padding:15px; border-radius:10px; margin-bottom:20px; border:1px solid #2D3748;'>", unsafe_allow_html=True)
         col_dt, col_btn = st.columns([1, 2])
         with col_dt:
@@ -709,3 +751,38 @@ if st.session_state.get('run_v14'):
         st.markdown("---")
         st.markdown(f"### 💎 Master Core Analysis ({target_session} Math Logic)")
         render_mode_tab(res_l['m3'], res_l['test_size'], res_l['m3_next']['m'], res_l['m3_next']['s'], res_l['m3_next']['cm'], res_l['m3_next']['cs'])
+        
+    with tab5:
+        st.markdown("### 🔬 A/B Testing: Static vs Adaptive Engine")
+        st.markdown("<p style='color:#A0AEC0;'>ပုံသေ ၁၆ ကွက်စနစ်နှင့် အခြေအနေပေါ်မူတည်ပြီး အကွက်ပြောင်းသော စနစ်သစ် ယှဉ်ပြိုင်မှုမှတ်တမ်း</p>", unsafe_allow_html=True)
+
+        if st.button("🚀 Run Adaptive Simulation", use_container_width=True):
+            with st.spinner("AI နှင့် Math Engine တို့၏ နောက်ကြောင်းပြန် အချက်အလက်များကို ခွဲခြမ်းစိတ်ဖြာနေပါသည်..."):
+                sim_df = run_adaptive_simulation(res_l, res_c, res_l['test_size'])
+                
+                st.dataframe(sim_df, use_container_width=True)
+                
+                static_wins = len(sim_df[sim_df['Static Result'] == 'Win'])
+                adaptive_wins = len(sim_df[sim_df['Adaptive Result'] == 'Win'])
+                total_static_cost = sim_df['Static Cost (Pairs)'].sum()
+                total_adaptive_cost = sim_df['Adaptive Cost (Pairs)'].sum()
+                
+                col1, col2 = st.columns(2)
+                col1.info(f"**Static Engine (ပုံသေ)**\n\nWins: {static_wins} ပွဲ\nစုစုပေါင်း ရင်းနှီးရသည့်အကွက်: {total_static_cost} ကွက်")
+                col2.success(f"**Adaptive Engine (Dynamic)**\n\nWins: {adaptive_wins} ပွဲ\nစုစုပေါင်း ရင်းနှီးရသည့်အကွက်: {total_adaptive_cost} ကွက်")
+                
+                buffer = io.BytesIO()
+                with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                    sim_df.to_excel(writer, index=False, sheet_name='Simulation_Results')
+                
+                current_time_str = datetime.now().strftime("%Y%m%d_%H%M")
+                export_filename = f"GoldenCross_V14.12_Simulation_{current_time_str}.xlsx"
+                
+                st.download_button(
+                    label="📥 Simulation Data ကို Excel ဖြင့် ဒေါင်းလုဒ်လုပ်မည်",
+                    data=buffer.getvalue(),
+                    file_name=export_filename,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    type="primary",
+                    use_container_width=True
+                )
