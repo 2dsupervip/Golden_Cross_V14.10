@@ -209,7 +209,6 @@ with st.sidebar.expander("📲 Telegram Settings (Permanent)"):
             st.success("✅ သိမ်းဆည်းပြီးပါပြီ။")
         except: pass
 
-
 # --- 📱 Main App UI ---
 st.markdown("<h1 class='neon-text'>THE GOLDEN CROSS</h1>", unsafe_allow_html=True)
 st.markdown("<p class='sub-text'>V15.1 FINAL - THE ULTIMATE HOLY GRAIL EDITION</p>", unsafe_allow_html=True)
@@ -239,7 +238,7 @@ with tab1:
             
             tf_hist = target_timeline[-active_tf:] if len(target_timeline) > active_tf else target_timeline
             
-            # --- 🧠 V15 Prediction Engine ---
+            # --- 🧠 V15 Prediction Engine (Math/Momentum) ---
             m1_raw = get_mode1_raw_ranks(tf_hist)
             m2_raw = get_mode2_raw_ranks(tf_hist)
             recent_5 = [str(d) for pair in tf_hist[-5:] for d in pair]
@@ -262,17 +261,21 @@ with tab1:
             coldest_raw = sorted([str(x) for x in range(10)], key=lambda x: c_30.get(x, 0))
             super_cold_2 = [x for x in coldest_raw if x not in super_hot_2][:2]
 
+            # --- 🤖 Machine Learning Decoupled Engine (FIXED) ---
             ml_picks, ml_top_2, shadow_ai = [], [], []
-            if ML_AVAILABLE and len(tf_hist) >= 30:
+            
+            # AI သည် Math Timeframe ကို ဂရုမစိုက်ဘဲ အမြဲတမ်း ပွဲ ၃၀၀ စာကို ကြည့်၍ Training ဆင်းမည်
+            if ML_AVAILABLE and len(target_timeline) >= 30:
+                ml_hist = target_timeline[-300:] if len(target_timeline) > 300 else target_timeline
                 X_train, y_train = [], []
-                for j in range(1, len(tf_hist)):
-                    prev = tf_hist[j-1]
-                    m1_feat = [int(x) for x in get_mode1_raw_ranks(tf_hist[:j])[:3]]
-                    m2_feat = [int(x) for x in get_mode2_raw_ranks(tf_hist[:j])[:3]]
+                for j in range(1, len(ml_hist)):
+                    prev = ml_hist[j-1]
+                    m1_feat = [int(x) for x in get_mode1_raw_ranks(ml_hist[:j])[:3]]
+                    m2_feat = [int(x) for x in get_mode2_raw_ranks(ml_hist[:j])[:3]]
                     X_train.append([prev[0], prev[1]] + m1_feat + m2_feat)
                     target = [0]*10
-                    target[tf_hist[j][0]] = 1
-                    target[tf_hist[j][1]] = 1
+                    target[ml_hist[j][0]] = 1
+                    target[ml_hist[j][1]] = 1
                     y_train.append(target)
                 
                 X_train.extend([[0]*8, [0]*8])
@@ -281,7 +284,7 @@ with tab1:
                 rf = RandomForestClassifier(n_estimators=100, max_depth=7, min_samples_split=4, random_state=42)
                 rf.fit(X_train, y_train)
                 
-                curr_prev = tf_hist[-1]
+                curr_prev = target_timeline[-1]
                 m1_next_feat = [int(x) for x in m1_raw[:3]]
                 m2_next_feat = [int(x) for x in m2_raw[:3]]
                 future_probs = rf.predict_proba([[curr_prev[0], curr_prev[1]] + m1_next_feat + m2_next_feat])
@@ -311,7 +314,7 @@ with tab1:
             main_smart_pairs = list(dict.fromkeys(main_smart_pairs))[:8] # Max 8 Pairs for Main
             
             cold_smart_pairs = []
-            if m1: cold_smart_pairs.append(f"{m1}{m1}")
+            if m1: cold_smart_pairs.append(f"{m1}{m1}") # Master အပူးကို အရံတွင် ကာဗာလုပ်မည်
             if m2: cold_smart_pairs.append(f"{m2}{m2}")
             trap_pool = list(dict.fromkeys(shadow_ai + super_cold_2))
             cold_smart_pairs.extend([f"{a}{b}" for a, b in itertools.permutations(trap_pool, 2)])
@@ -334,7 +337,7 @@ with tab1:
                     tier_title, live_confidence = "⚖️ Tier 2: Normal Confidence Mode (Max Coverage)", (75 if len(vip_key) == 1 else 50)
                     final_cold = final_cold_pairs[:8]
 
-            # --- Render Tab 1 (Telegram) ---
+            # --- Render Tab 1 (Telegram UI) ---
             st.markdown(f"<div class='yellow-status'>📊 <b>Engine Status:</b> {tier_title} (Score: {live_confidence}%)</div>", unsafe_allow_html=True)
 
             col_dt, col_btn = st.columns([1, 2])
@@ -368,7 +371,7 @@ with tab1:
             st.markdown("<h4 style='text-align:center;'>⚔️ ADAPTIVE SHADOW CORE (COLD)</h4>", unsafe_allow_html=True)
             if final_cold: st.markdown("<div class='premium-box' style='border-color:#00E5FF;'>" + "".join([f"<span class='premium-num'>{p}</span>" for p in final_cold]) + "</div>", unsafe_allow_html=True)
 
-            # --- Render Tab 2 (Diagnostics) ---
+            # --- Render Tab 2 (Diagnostics UI) ---
             with tab2:
                 st.markdown("### 🧠 AI & Core Diagnostics (အင်ဂျင်အတွင်းပိုင်း အချက်အလက်များ)")
                 st.info("ယခု Tab သည် နောက်ကွယ်မှ AI တွက်ချက်မှု ရာခိုင်နှုန်းများနှင့် သင်္ချာ Core အကြမ်းများကို ပွင့်လင်းမြင်သာစွာ ကြည့်ရှုရန် သီးသန့်ထုတ်ပေးထားခြင်း ဖြစ်သည်။")
@@ -402,10 +405,10 @@ with tab1:
                     st.markdown(f"<span style='color:#00E5FF;'><b>True Deep Cold:</b> [ {cold_str} ]</span><br><br><span style='color:#A0AEC0;'><b>Shadow AI:</b> [ {shadow_str} ]</span>", unsafe_allow_html=True)
                     st.markdown("</div>", unsafe_allow_html=True)
 
-# --- Render Tab 3 (Tools) outside the prediction run block so they are always accessible ---
+# --- Render Tab 3 (Tools) ---
 with tab3:
     st.markdown("### 📊 Advanced Trend Optimizer & Market Scanner")
-    st.markdown("ယခု Tool များသည် Market လမ်းကြောင်း အပြောင်းအလဲရှိပါက **အကောင်းဆုံး Timeframe အသစ်များ** ရှာဖွေရန်နှင့် **ဆက်တိုက်ရှုံးပွဲ အန္တရာယ်** ကို တိုင်းတာရန် အသုံးပြုပါသည်။ (မှတ်ချက် - Google Colab ကဲ့သို့ အဖြေထုတ်ပေးမည်ဖြစ်ပြီး တွက်ချက်ချိန် ၂ မိနစ်ခန့် ကြာနိုင်ပါသည်။)")
+    st.markdown("ယခု Tool များသည် Market လမ်းကြောင်း အပြောင်းအလဲရှိပါက **အကောင်းဆုံး Timeframe အသစ်များ** ရှာဖွေရန်နှင့် **ဆက်တိုက်ရှုံးပွဲ အန္တရာယ်** ကို တိုင်းတာရန် အသုံးပြုပါသည်။ (မှတ်ချက် - တွက်ချက်ချိန် ၂ မိနစ်ခန့် ကြာနိုင်ပါသည်။)")
     
     st.markdown("---")
     st.markdown("#### 🛠️ Tool 1: The Leaderboard Scanner (အကောင်းဆုံး Timeframe ရှာဖွေစက်)")
