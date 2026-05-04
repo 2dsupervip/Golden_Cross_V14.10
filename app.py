@@ -120,97 +120,102 @@ def get_best_partners(target, hist_tuples):
 # --- 🧪 A/B Testing Engine ---
 def run_v15_simulation(timeline, test_size=50):
     total_draws = len(timeline)
-    test_size = min(test_size, total_draws - 45)
-    start_idx = total_draws - test_size
+    # KeyError Fix: Ensure start_idx doesn't go negative or create empty loops
+    start_idx = max(5, total_draws - test_size) 
     simulation_records = []
     
-    for i in range(start_idx, total_draws):
-        hist = timeline[:i]
-        actual_draw = timeline[i]
-        actual_str = f"{actual_draw[0]}{actual_draw[1]}"
-        
-        m1_raw = get_mode1_raw_ranks(hist)
-        m2_raw = get_mode2_raw_ranks(hist)
-        recent_5 = [str(d) for pair in hist[-5:] for d in pair]
-        c_recent = Counter(recent_5)
-        
-        scores = {str(k): 0.0 for k in range(10)}
-        m1_m, m1_s = m1_raw[:2], m1_raw[2:5]
-        m2_m, m2_s = m2_raw[:2], m2_raw[2:5]
-        
-        for k in range(10):
-            k_str = str(k)
-            if k_str in m1_m and k_str in m2_m: scores[k_str] += 4
-            elif (k_str in m1_m and k_str in m2_s) or (k_str in m1_s and k_str in m2_m): scores[k_str] += 3
-            elif k_str in m1_s and k_str in m2_s: scores[k_str] += 2
-            elif k_str in m1_m or k_str in m1_s or k_str in m2_m or k_str in m2_s: scores[k_str] += 1
-            scores[k_str] += c_recent.get(k_str, 0) * 0.5
+    if total_draws > 5:
+        for i in range(start_idx, total_draws):
+            hist = timeline[:i]
+            actual_draw = timeline[i]
+            actual_str = f"{actual_draw[0]}{actual_draw[1]}"
             
-        m3_raw = [x[0] for x in sorted(scores.items(), key=lambda x: x[1], reverse=True)]
-        super_hot_2 = m3_raw[:2]
-        
-        flat_30 = [str(d) for pair in hist[-30:] for d in pair]
-        c_30 = Counter(flat_30)
-        coldest_raw = sorted([str(x) for x in range(10)], key=lambda x: c_30.get(x, 0))
-        m_cold = [x for x in coldest_raw if x not in super_hot_2][:2]
-        
-        X_train, y_train = [], []
-        
-        if ML_AVAILABLE:
-            ml_timeline = hist[-300:] if len(hist) > 300 else hist
-            for j in range(1, len(ml_timeline)):
-                prev = ml_timeline[j-1]
-                m1_feat = [int(x) for x in get_mode1_raw_ranks(ml_timeline[:j])[:3]]
-                m2_feat = [int(x) for x in get_mode2_raw_ranks(ml_timeline[:j])[:3]]
-                X_train.append([prev[0], prev[1]] + m1_feat + m2_feat)
-                target = [0]*10
-                target[ml_timeline[j][0]] = 1
-                target[ml_timeline[j][1]] = 1
-                y_train.append(target)
+            m1_raw = get_mode1_raw_ranks(hist)
+            m2_raw = get_mode2_raw_ranks(hist)
+            recent_5 = [str(d) for pair in hist[-5:] for d in pair]
+            c_recent = Counter(recent_5)
+            
+            scores = {str(k): 0.0 for k in range(10)}
+            m1_m, m1_s = m1_raw[:2], m1_raw[2:5]
+            m2_m, m2_s = m2_raw[:2], m2_raw[2:5]
+            
+            for k in range(10):
+                k_str = str(k)
+                if k_str in m1_m and k_str in m2_m: scores[k_str] += 4
+                elif (k_str in m1_m and k_str in m2_s) or (k_str in m1_s and k_str in m2_m): scores[k_str] += 3
+                elif k_str in m1_s and k_str in m2_s: scores[k_str] += 2
+                elif k_str in m1_m or k_str in m1_s or k_str in m2_m or k_str in m2_s: scores[k_str] += 1
+                scores[k_str] += c_recent.get(k_str, 0) * 0.5
                 
-            X_train.append([0,0,0,0,0,0,0,0]); y_train.append([1]*10)
-            X_train.append([0,0,0,0,0,0,0,0]); y_train.append([0]*10)
+            m3_raw = [x[0] for x in sorted(scores.items(), key=lambda x: x[1], reverse=True)]
+            super_hot_2 = m3_raw[:2]
             
-            rf = RandomForestClassifier(n_estimators=100, max_depth=7, min_samples_split=4, random_state=42)
-            rf.fit(X_train, y_train)
+            flat_30 = [str(d) for pair in hist[-30:] for d in pair]
+            c_30 = Counter(flat_30)
+            coldest_raw = sorted([str(x) for x in range(10)], key=lambda x: c_30.get(x, 0))
+            m_cold = [x for x in coldest_raw if x not in super_hot_2][:2]
             
-            curr_prev = hist[-1]
-            m1_next_feat = [int(x) for x in m1_raw[:3]]
-            m2_next_feat = [int(x) for x in m2_raw[:3]]
-            future_probs = rf.predict_proba([[curr_prev[0], curr_prev[1]] + m1_next_feat + m2_next_feat])
+            X_train, y_train = [], []
             
-            digit_probs_future = {}
-            for d in range(10):
-                digit_probs_future[str(d)] = future_probs[d][0][1] if future_probs[d].shape[1] == 2 else 0.0
-            ml_picks = sorted(digit_probs_future.items(), key=lambda x: x[1], reverse=True)[:4]
-            ml_top_2 = [ml_picks[0][0], ml_picks[1][0]]
-            shadow_ai = [ml_picks[2][0], ml_picks[3][0]] if len(ml_picks) >= 4 else []
-        else:
-            ml_top_2, shadow_ai, ml_picks = [], [], []
+            if ML_AVAILABLE and len(hist) > 10:
+                ml_timeline = hist[-300:] if len(hist) > 300 else hist
+                for j in range(1, len(ml_timeline)):
+                    prev = ml_timeline[j-1]
+                    m1_feat = [int(x) for x in get_mode1_raw_ranks(ml_timeline[:j])[:3]]
+                    m2_feat = [int(x) for x in get_mode2_raw_ranks(ml_timeline[:j])[:3]]
+                    X_train.append([prev[0], prev[1]] + m1_feat + m2_feat)
+                    target = [0]*10
+                    target[ml_timeline[j][0]] = 1
+                    target[ml_timeline[j][1]] = 1
+                    y_train.append(target)
+                    
+                X_train.append([0,0,0,0,0,0,0,0]); y_train.append([1]*10)
+                X_train.append([0,0,0,0,0,0,0,0]); y_train.append([0]*10)
+                
+                rf = RandomForestClassifier(n_estimators=100, max_depth=7, min_samples_split=4, random_state=42)
+                rf.fit(X_train, y_train)
+                
+                curr_prev = hist[-1]
+                m1_next_feat = [int(x) for x in m1_raw[:3]]
+                m2_next_feat = [int(x) for x in m2_raw[:3]]
+                future_probs = rf.predict_proba([[curr_prev[0], curr_prev[1]] + m1_next_feat + m2_next_feat])
+                
+                digit_probs_future = {}
+                for d in range(10):
+                    digit_probs_future[str(d)] = future_probs[d][0][1] if future_probs[d].shape[1] == 2 else 0.0
+                ml_picks = sorted(digit_probs_future.items(), key=lambda x: x[1], reverse=True)[:4]
+                ml_top_2 = [ml_picks[0][0], ml_picks[1][0]]
+                shadow_ai = [ml_picks[2][0], ml_picks[3][0]] if len(ml_picks) >= 4 else []
+            else:
+                ml_top_2, shadow_ai, ml_picks = [], [], []
 
-        vip_key = [n for n in ml_top_2 if n in super_hot_2]
-        
-        if len(vip_key) == 2:
-            tier, confidence, adaptive_cost = "Tier 1", 95, 6 + len(shadow_ai) * 2
-            hit_status = "Win" if actual_str[0] in super_hot_2 or actual_str[1] in super_hot_2 or actual_str[0] in m_cold or actual_str[1] in m_cold or actual_str[0] in shadow_ai or actual_str[1] in shadow_ai else "Loss"
-        elif len(vip_key) == 1:
-            tier, confidence, adaptive_cost = "Tier 2", 75, 16
-            hit_status = "Win" if (actual_str[0] in super_hot_2 or actual_str[1] in super_hot_2) or (actual_str[0] in m_cold or actual_str[1] in m_cold) else "Loss"
-        elif not ml_picks:
-            tier, confidence, adaptive_cost = "Tier 3", 30, 12
-            hit_status = "Win" if actual_str[0] in m_cold or actual_str[1] in m_cold else "Loss"
-        else:
-            tier, confidence, adaptive_cost = "Tier 2", 50, 16
-            hit_status = "Win" if (actual_str[0] in super_hot_2 or actual_str[1] in super_hot_2) or (actual_str[0] in m_cold or actual_str[1] in m_cold) else "Loss"
+            vip_key = [n for n in ml_top_2 if n in super_hot_2]
             
-        simulation_records.append({
-            "Match": f"ပွဲ {i+1-start_idx}",
-            "Actual Result": actual_str,
-            "Confidence Score": f"{confidence}%",
-            "Adaptive Tier": tier,
-            "Cost (Pairs)": adaptive_cost,
-            "Result": hit_status
-        })
+            if len(vip_key) == 2:
+                tier, confidence, adaptive_cost = "Tier 1", 95, 6 + len(shadow_ai) * 2
+                hit_status = "Win" if actual_str[0] in super_hot_2 or actual_str[1] in super_hot_2 or actual_str[0] in m_cold or actual_str[1] in m_cold or actual_str[0] in shadow_ai or actual_str[1] in shadow_ai else "Loss"
+            elif len(vip_key) == 1:
+                tier, confidence, adaptive_cost = "Tier 2", 75, 16
+                hit_status = "Win" if (actual_str[0] in super_hot_2 or actual_str[1] in super_hot_2) or (actual_str[0] in m_cold or actual_str[1] in m_cold) else "Loss"
+            elif not ml_picks:
+                tier, confidence, adaptive_cost = "Tier 3", 30, 12
+                hit_status = "Win" if actual_str[0] in m_cold or actual_str[1] in m_cold else "Loss"
+            else:
+                tier, confidence, adaptive_cost = "Tier 2", 50, 16
+                hit_status = "Win" if (actual_str[0] in super_hot_2 or actual_str[1] in super_hot_2) or (actual_str[0] in m_cold or actual_str[1] in m_cold) else "Loss"
+                
+            simulation_records.append({
+                "Match": f"ပွဲ {i+1}",
+                "Actual Result": actual_str,
+                "Confidence Score": f"{confidence}%",
+                "Adaptive Tier": tier,
+                "Cost (Pairs)": adaptive_cost,
+                "Result": hit_status
+            })
+            
+    # KeyError Fix: Return Dataframe with defined columns even if records are empty
+    if not simulation_records:
+        return pd.DataFrame(columns=["Match", "Actual Result", "Confidence Score", "Adaptive Tier", "Cost (Pairs)", "Result"])
         
     return pd.DataFrame(simulation_records)
 
@@ -250,7 +255,6 @@ if uploaded_file is not None:
             df.columns = df.columns.str.strip().str.lower()
             temp_timeline = []
             for _, row in df.iterrows():
-                # Requirement 1: Error Handling for "x" using try...except ValueError: pass
                 if 'am1' in df.columns and 'am2' in df.columns:
                     if pd.notna(row['am1']) and pd.notna(row['am2']):
                         try: temp_timeline.append({'session': 'AM', 'draw': (int(float(str(row['am1']))), int(float(str(row['am2']))))})
@@ -303,7 +307,7 @@ if st.sidebar.button("↩️ Undo (ပြန်ဖျက်မည်)"):
         if hasattr(st, "rerun"): st.rerun()
         else: st.experimental_rerun()
 
-# --- ⚙️ Telegram Bot Settings (Permanent Storage) ---
+# --- ⚙️ Telegram Bot Settings ---
 CONFIG_FILE = "telegram_config.json"
 if 'tg_token' not in st.session_state or 'tg_chat_id' not in st.session_state:
     st.session_state.tg_token = ""
@@ -339,7 +343,8 @@ custom_lb = 50
 if "Custom" in mode: custom_lb = st.number_input("Backtest ပွဲစဉ်:", value=50)
 
 if st.button("🚀 V16 Engine ကို Run မည်", use_container_width=True):
-    if len(st.session_state.history) < 50: st.warning("⚠️ Data အနည်းဆုံး ပွဲ ၅၀ လိုအပ်ပါသည်။")
+    if len(st.session_state.history) < 20: 
+        st.warning("⚠️ Data အနည်းဆုံး ပွဲ ၂၀ ခန့် လိုအပ်ပါသည်။ Data ထပ်ဖြည့်ပေးပါ။")
     else:
         st.session_state.run_v16 = True
         st.session_state.selected_mode = mode
@@ -350,8 +355,10 @@ if st.session_state.get('run_v16'):
     target_session = "PM" if hist[-1]['session'] == "AM" else "AM"
     target_timeline = [item['draw'] for item in hist if item['session'] == target_session]
     
-    # Requirement 2: AI Auto Mode Customization (TF 10 for AM, TF 40 for PM)
-    if "Auto" in st.session_state.selected_mode:
+    # Session State KeyError Fix: Fallback get() method
+    selected_mode = st.session_state.get('selected_mode', '🤖 AI Auto Mode')
+    
+    if "Auto" in selected_mode:
         tf_limit = 10 if target_session == "AM" else 40
         if len(target_timeline) > tf_limit:
             target_timeline = target_timeline[-tf_limit:]
@@ -387,7 +394,7 @@ if st.session_state.get('run_v16'):
     super_cold_2 = [x for x in coldest_raw if x not in super_hot_2][:2]
 
     ml_picks, ml_top_2, shadow_ai = [], [], []
-    if ML_AVAILABLE and len(target_timeline) >= 30:
+    if ML_AVAILABLE and len(target_timeline) >= 15:
         ml_timeline = target_timeline[-300:] if len(target_timeline) > 300 else target_timeline
         X_train, y_train = [], []
         for j in range(1, len(ml_timeline)):
@@ -467,7 +474,7 @@ if st.session_state.get('run_v16'):
             final_main_pairs_2 = base_pairs_2
             final_cold_pairs = base_mc_6_pairs
 
-    # --- 📑 Render Tabs (Added Performance Dashboard Tab) ---
+    # --- 📑 Render Tabs ---
     tab1, tab2, tab3, tab4 = st.tabs(["🎯 Live Prediction", "🔬 V16 Backtest", "📊 System Info", "📈 Performance Dashboard"])
     
     with tab1:
@@ -484,7 +491,6 @@ if st.session_state.get('run_v16'):
                     formatted_date = selected_date.strftime("%d-%m-%Y")
                     session_mm = "မနက်ပိုင်း" if target_session == "AM" else "ညနေပိုင်း"
                     
-                    # Requirement 4: Bold format formatting for Telegram
                     msg_body = f"📅 *ရက်စွဲ:* *{formatted_date}* ({session_mm})\n"
                     msg_body += f"👑 *THE GOLDEN CROSS V16* 👑\n\n"
                     msg_body += f"📊 *Engine Status:* {tier_title}\n\n"
@@ -525,7 +531,6 @@ if st.session_state.get('run_v16'):
             
         st.markdown("<h3 style='text-align:center; color:#FFD700; margin-top:30px;'>👑 ADAPTIVE MASTER CORE (MAIN)</h3>", unsafe_allow_html=True)
         if len(super_hot_2) > 0:
-            # Requirement 3: UI Uniformity (Using premium-box and premium-num style like Pattern Matrix)
             html_master_core = "<div class='premium-box' style='border-color:#FFD700; margin-bottom: 20px;'>"
             for lone in super_hot_2:
                 html_master_core += f"<span style='margin:0 15px;'><span class='premium-num' style='color:#FFD700; font-size: 32px;'>{lone}</span></span>"
@@ -559,16 +564,22 @@ if st.session_state.get('run_v16'):
         st.markdown("### 🔬 V16 A/B Testing Simulator")
         if st.button("🚀 Run V16 Diagnostic Simulation", use_container_width=True):
             with st.spinner("Holy Grail Engine ၏ နောက်ကြောင်းပြန် အချက်အလက်များကို ခွဲခြမ်းစိတ်ဖြာနေပါသည်..."):
-                test_size_val = st.session_state.custom_lb if "Custom" in st.session_state.selected_mode else len(target_timeline)
-                sim_df = run_v15_simulation(target_timeline, test_size_val)
-                st.dataframe(sim_df, use_container_width=True)
-                wins = len(sim_df[sim_df['Result'] == 'Win'])
-                total_played = len(sim_df)
-                total_cost = sim_df['Cost (Pairs)'].sum()
+                current_mode = st.session_state.get('selected_mode', '🤖 AI Auto Mode')
+                t_val = st.session_state.get('custom_lb', 50) if "Custom" in current_mode else len(target_timeline)
                 
-                col1, col2 = st.columns(2)
-                col1.info(f"**V16 Hit Rate**\n\n🎯 Matches Won: {wins} / {total_played} ပွဲ\n📈 Accuracy: {(wins/total_played)*100:.1f}%")
-                col2.success(f"**Cost Analysis**\n\n💰 စုစုပေါင်း ရင်းနှီးရသည့်အကွက်: {total_cost} ကွက်\n(Average: {total_cost/total_played:.1f} pairs/draw)")
+                sim_df = run_v15_simulation(target_timeline, t_val)
+                # KeyError Fix: Explicit check if the dataframe has records before processing
+                if not sim_df.empty and 'Result' in sim_df.columns:
+                    st.dataframe(sim_df, use_container_width=True)
+                    wins = len(sim_df[sim_df['Result'] == 'Win'])
+                    total_played = len(sim_df)
+                    total_cost = sim_df['Cost (Pairs)'].sum()
+                    
+                    col1, col2 = st.columns(2)
+                    col1.info(f"**V16 Hit Rate**\n\n🎯 Matches Won: {wins} / {total_played} ပွဲ\n📈 Accuracy: {(wins/total_played)*100:.1f}%")
+                    col2.success(f"**Cost Analysis**\n\n💰 စုစုပေါင်း ရင်းနှီးရသည့်အကွက်: {total_cost} ကွက်\n(Average: {total_cost/total_played:.1f} pairs/draw)")
+                else:
+                    st.warning("⚠️ Simulation ပြုလုပ်ရန် Data အလုံအလောက်မရှိသေးပါ။ (History Data ထပ်ဖြည့်ပေးပါ)")
 
     with tab3:
         st.markdown("### ⚙️ V16 System Architecture Info")
@@ -580,21 +591,23 @@ if st.session_state.get('run_v16'):
         **5. 📈 Performance Tracking:** နောက်ဆုံးအောင်မြင်မှုများအား Dashboard ဖြင့် လွယ်ကူစွာ စောင့်ကြည့်နိုင်ခြင်း။
         """)
 
-    # Requirement 5: Analytics Dashboard (Performance Dashboard with Line Chart)
     with tab4:
         st.markdown("### 📈 Recent Performance (Hit Rates Dashboard)")
         st.markdown("<p style='color:#A0AEC0;'>နောက်ဆုံးပွဲစဉ် ၂၀ ရဲ့ အောင်မြင်မှုရာခိုင်နှုန်း (Hit Rates) အတက်အကျ</p>", unsafe_allow_html=True)
         
         full_timeline = [item['draw'] for item in st.session_state.history if item['session'] == target_session]
-        if len(full_timeline) >= 45:
+        if len(full_timeline) >= 15:
             with st.spinner("Performance Data ဆွဲထုတ်နေပါသည်..."):
                 perf_sim = run_v15_simulation(full_timeline, test_size=20)
-                if not perf_sim.empty:
+                # KeyError Fix: Prevent Dashboard crash if Result column is missing due to low data
+                if not perf_sim.empty and 'Result' in perf_sim.columns:
                     perf_sim['Is_Win'] = perf_sim['Result'].apply(lambda x: 1 if x == 'Win' else 0)
                     perf_sim['Win_Rate_%'] = perf_sim['Is_Win'].expanding().mean() * 100
                     
                     chart_data = perf_sim[['Match', 'Win_Rate_%']].set_index('Match')
                     st.line_chart(chart_data)
                     st.success(f"📊 လက်ရှိ နောက်ဆုံးတွက်ချက်ထားသည့် Win Rate မှာ **{chart_data.iloc[-1]['Win_Rate_%']:.1f}%** ဖြစ်ပါသည်။")
+                else:
+                    st.warning("⚠️ Dashboard ပြသရန် ခွဲခြမ်းစိတ်ဖြာမှု မအောင်မြင်သေးပါ။ (Data အနည်းငယ် ထပ်ဖြည့်ပေးပါ)")
         else:
-            st.info("⚠️ Dashboard ပြသရန် Data အလုံအလောက်မရှိသေးပါ။ (အနည်းဆုံး ပွဲ ၄၅ လိုအပ်ပါသည်)")
+            st.info("⚠️ Dashboard ပြသရန် Data အလုံအလောက်မရှိသေးပါ။ (အနည်းဆုံး ပွဲ ၁၅ ပွဲခန့် လိုအပ်ပါသည်)")
