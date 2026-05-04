@@ -138,15 +138,26 @@ if uploaded_file is not None:
             df.columns = df.columns.str.strip().str.lower()
             temp_timeline = []
             for _, row in df.iterrows():
+                # AM Session
                 if 'am1' in df.columns and 'am2' in df.columns and pd.notna(row['am1']):
-                    temp_timeline.append({'session': 'AM', 'draw': (int(float(row['am1'])), int(float(row['am2'])))})
+                    try:
+                        temp_timeline.append({'session': 'AM', 'draw': (int(float(row['am1'])), int(float(row['am2'])))})
+                    except ValueError:
+                        pass 
+                
+                # PM Session
                 if 'pm1' in df.columns and 'pm2' in df.columns and pd.notna(row['pm1']):
-                    temp_timeline.append({'session': 'PM', 'draw': (int(float(row['pm1'])), int(float(row['pm2'])))})
+                    try:
+                        temp_timeline.append({'session': 'PM', 'draw': (int(float(row['pm1'])), int(float(row['pm2'])))})
+                    except ValueError:
+                        pass 
+                        
             if temp_timeline: 
                 st.session_state.history = temp_timeline
                 st.session_state.last_uploaded = file_id 
                 st.sidebar.success(f"✅ Data ({len(temp_timeline)}) ပွဲ ဝင်ရောက်ပါပြီ။")
-        except Exception as e: st.sidebar.error(f"❌ Error: {e}")
+        except Exception as e: 
+            st.sidebar.error(f"❌ Error: {e}")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 📝 Live Data Entry (V16)")
@@ -218,7 +229,7 @@ if st.session_state.get('run_v16'):
     target_session = "PM" if hist[-1]['session'] == "AM" else "AM"
     full_target_timeline = [item['draw'] for item in hist if item['session'] == target_session]
     
-    # 🎯 1. Implement Fixed TF for AI Auto Mode
+    # 🎯 TF Fixed Logic for AI Auto Mode
     if "Auto" in st.session_state.selected_mode:
         fixed_tf = 10 if target_session == "AM" else 40
         st.success(f"🕒 **AI Auto Mode Active:** {target_session} Session အတွက် သတ်မှတ်ထားသော Timeframe ({fixed_tf}) ကို အသုံးပြု၍ တွက်ချက်နေပါသည်။")
@@ -293,7 +304,7 @@ if st.session_state.get('run_v16'):
             st.markdown("<br>", unsafe_allow_html=True) 
             if st.session_state.tg_token:
                 if st.button("🚀 Telegram သို့ VIP ဂဏန်းများ ပို့မည်", type="primary", use_container_width=True):
-                    # 🎯 3. Telegram Digits in Bold (**digit**)
+                    # 🎯 Telegram Digits in Bold
                     session_mm = "မနက်ပိုင်း" if target_session == "AM" else "ညနေပိုင်း"
                     msg = f"📅 *ရက်စွဲ:* **{selected_date.strftime('%d-%m-%Y')}** ({session_mm})\n"
                     msg += f"👑 *THE GOLDEN CROSS V16* 👑\n\n"
@@ -308,7 +319,7 @@ if st.session_state.get('run_v16'):
                     else: st.error("❌ Telegram ပို့ရာတွင် အမှားရှိနေပါသည်။")
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # 🎯 2. Implement Master Core to match Pattern Matrix style
+        # 🎯 Master Core display matched to Pattern Matrix
         st.markdown("<h3 style='text-align:center; color:#FFD700; margin-top:30px;'>👑 MASTER CORE (MAIN PAIRS)</h3>", unsafe_allow_html=True)
         html_master = "<div class='premium-box'>"
         if base_pairs_1:
@@ -322,7 +333,6 @@ if st.session_state.get('run_v16'):
         st.markdown("### 🌊 ALL MATRIX PATTERNS (V16 Uniform UI)")
         st.info("💡 Master Core နှင့် Pattern Matrix တို့၏ Display Style ကို တပြေးညီ (Uniform Layout) ပြောင်းလဲသတ်မှတ်ထားပါသည်။")
         
-        # Displaying the exact same style for comparison or full pattern
         pm_hot5 = m1_raw[:2] + m1_raw[2:5]
         pm_10_pairs = [f"{a}{b}" for a, b in itertools.combinations(pm_hot5, 2)]
         
@@ -338,8 +348,7 @@ if st.session_state.get('run_v16'):
         st.markdown("### 📊 Performance Dashboard (Analytics)")
         st.markdown("ယခင်ပွဲစဉ်များ၏ အောင်မြင်မှုရာခိုင်နှုန်း (Hit Rates) များကို အလွယ်တကူ စောင့်ကြည့်နိုင်ပါသည်။")
         
-        # 🎯 4. Chart Implementation (Mock data based on simple history mapping for visualization)
-        # Using streamlit native line_chart to show simulated win patterns over the last 30 draws
+        # 🎯 Chart Implementation
         try:
             chart_data = []
             for i in range(10, min(40, len(full_target_timeline))):
@@ -350,7 +359,6 @@ if st.session_state.get('run_v16'):
                 chart_data.append(is_hit)
             
             if chart_data:
-                # Calculate rolling win rate
                 rolling_win_rate = [sum(chart_data[max(0, k-5):k+1]) / len(chart_data[max(0, k-5):k+1]) * 100 for k in range(len(chart_data))]
                 df_chart = pd.DataFrame({"Win Rate Trend (%)": rolling_win_rate})
                 st.line_chart(df_chart, color="#00FF88")
